@@ -209,6 +209,18 @@
     .stable-table-container {
         height: calc(100vh - 320px);
     }
+
+    .fixed-header {
+        /* Allow the header to grow to fit stacked content on mobile */
+        height: auto;
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+
+    .mobile-hidden {
+        /* Utility class to hide CSV controls on mobile */
+        display: none !important;
+    }
 }
 
 /* ===== DROPDOWN MENU ===== */
