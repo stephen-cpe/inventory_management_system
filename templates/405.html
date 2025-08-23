@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container text-center py-5">
+    <h1 class="display-1 text-danger">405</h1>
+    <p class="lead">Method Not Allowed</p>
+    <p>The requested method is not supported for this resource.</p>
+    <div class="d-flex justify-content-center gap-3">
+        <a href="{{ url_for('index') }}" class="btn btn-primary">
+            <i class="bi bi-house-door"></i> Return Home
+        </a>
+        <a href="javascript:history.back()" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Go Back
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container text-center py-5">
+    <h1 class="display-1">404</h1>
+    <p class="lead">Page Not Found</p>
+    <a href="{{ url_for('index') }}" class="btn btn-primary">
+        <i class="bi bi-house-door"></i> Return Home
+    </a>
+</div>
+{% endblock %}

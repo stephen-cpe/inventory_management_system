@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Inventory Item{% endblock %}
+
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <!-- Danger Header -->
+                <div class="card-header theme-bg-danger text-white py-3">
+                    <h4 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Delete Inventory Item</h4>
+                </div>
+                
+                <!-- Light Body -->
+                <div class="card-body p-4 bg-white">
+                    <div class="alert alert-danger">
+                        <h5><i class="bi bi-exclamation-circle me-2"></i>Confirm Deletion</h5>
+                        <p>You are about to permanently delete the following item:</p>
+                        
+                        <div class="border rounded p-3 mb-3">
+                            <h6><strong>{{ item.name }}</strong></h6>
+                            {% if item.description %}
+                            <p class="mb-1">{{ item.description }}</p>
+                            {% endif %}
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <small class="text-muted">Category:</small>
+                                    <div>{{ item.category or 'Uncategorized' }}</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted">Condition:</small>
+                                    <div>{{ item.condition or 'N/A' }}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-2">
+                                <small class="text-muted">Locations:</small>
+                                <ul class="list-unstyled mb-0">
+                                    {% for loc in item.locations %}
+                                    <li>
+                                        <i class="bi bi-geo-alt"></i> 
+                                        {{ loc.location.name }} ({{ loc.quantity }})
+                                    </li>
+                                    {% else %}
+                                    <li class="text-muted">No locations</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <p class="mb-0"><strong>Warning:</strong> This action cannot be undone. All related movements and disposal records will also be deleted.</p>
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('delete_item', item_id=item.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="form-check mb-4">
+                            <input type="checkbox" class="form-check-input" id="confirmation" name="confirmation" required>
+                            <label class="form-check-label" for="confirmation">
+                                I confirm that I want to permanently delete this item and all related records.
+                            </label>
+                        </div>
+                        
+                        <div class="d-flex gap-3 justify-content-end">
+                            <a href="{{ url_for('delete_items') }}" class="btn btn-outline-secondary">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash3 me-2"></i>Delete Item
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Custom styling for danger theme */
+    .card-body.bg-white {
+        background-color: #ffffff !important;
+        color: #212529;
+    }
+
+    .btn-danger {
+        background-color: #dc3545;
+        border-color: #dc3545;
+    }
+
+    .btn-danger:hover {
+        background-color: #bb2d3b;
+        border-color: #bb2d3b;
+    }
+</style>
+{% endblock %}

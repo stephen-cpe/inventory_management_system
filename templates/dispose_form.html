@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header theme-bg-danger text-white">
+        <h5 class="mb-0"><i class="bi bi-exclamation-octagon"></i> Dispose Item: {{ item.name }}</h5>
+    </div>
+    
+    <div class="card-body">
+        <form method="POST" id="disposalForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div id="disposalEntries">
+                <!-- Disposal Entry -->
+                <div class="disposal-entry mb-3">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Location*</label>
+                            <select name="location" class="form-select theme-form-control" required>
+                                <option value="">Select Location</option>
+                                {% for location, available_quantity in locations_data %}
+                                    <option value="{{ location.id }}" 
+                                            data-max="{{ available_quantity }}"
+                                            {% if form_data and form_data.location|string == location.id|string %}selected{% endif %}>
+                                        {{ location.name }} (Available: {{ available_quantity }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-5">
+                            <label class="form-label">Quantity to Dispose*</label>
+                            <input type="number" name="quantity" 
+                                   class="form-control theme-form-control" 
+                                   min="1" 
+                                   required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Other form fields -->
+            <div class="row g-3 mt-2">
+                <div class="col-md-6">
+                    <label class="form-label">Reason*</label>
+                    <select name="reason" class="form-select theme-form-control" required>
+                        <option value="damaged">Damaged</option>
+                        <option value="lost">Lost</option>
+                        <option value="stolen">Stolen</option>
+                        <option value="donated">Donated</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-6">
+                    <label class="form-label">Date*</label>
+                    <input type="date" name="date" 
+                           class="form-control theme-form-control" 
+                           value="{{ date_today }}" 
+                           required>
+                </div>
+            </div>
+
+            <div class="mb-3 mt-3">
+                <label class="form-label">Notes</label>
+                <textarea name="notes" class="form-control theme-form-control" rows="2"></textarea>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn theme-btn-danger">
+                    <i class="bi bi-check-circle"></i> Confirm Disposal
+                </button>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .theme-bg-danger {
+        background-color: #6b2a2a !important;
+    }
+    
+    .theme-btn-danger {
+        background-color: #6b2a2a;
+        border-color: #6b2a2a;
+        color: white;
+    }
+    
+    .theme-btn-danger:hover {
+        background-color: #7a3434;
+        border-color: #7a3434;
+        color: white;
+    }
+    
+    .theme-form-control:focus {
+        border-color: #6b2a2a;
+        box-shadow: 0 0 0 0.25rem rgba(107,42,42,0.25);
+    }
+    
+    .form-label {
+        font-weight: 500;
+        color: #444;
+    }
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+{% endblock %}

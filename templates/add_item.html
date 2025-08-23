@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Add Inventory Item{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-sm border-0">
+                <!-- Dark Header -->
+                <div class="card-header theme-bg-dark text-white py-3">
+                    <h4 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Add New Inventory Item</h4>
+                </div>
+                
+                <!-- Light Body -->
+                <div class="card-body p-4 bg-white">
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-4">
+                            <label class="form-label text-dark">Item Name*</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   name="name" 
+                                   value="{{ form_data.name if form_data }}"
+                                   required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label text-dark">Description</label>
+                            <textarea class="form-control" 
+                                      name="description" 
+                                      rows="2">{{ form_data.description if form_data }}</textarea>
+                        </div>
+
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-4">
+                                <label class="form-label text-dark">Category*</label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       name="category" 
+                                       list="categories" 
+                                       value="{{ form_data.category if form_data }}"
+                                       required>
+                                <datalist id="categories">
+                                    {% for category in categories %}
+                                    <option value="{{ category }}">
+                                    {% endfor %}
+                                </datalist>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label text-dark">Condition*</label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       name="condition" 
+                                       list="conditions" 
+                                       value="{{ form_data.condition if form_data }}"
+                                       required>
+                                <datalist id="conditions">
+                                    {% for condition in conditions %}
+                                    <option value="{{ condition }}">
+                                    {% endfor %}
+                                </datalist>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label text-dark">Location*</label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       name="location" 
+                                       list="locations" 
+                                       value="{{ form_data.location if form_data }}"
+                                       required>
+                                <datalist id="locations">
+                                    {% for location in locations %}
+                                    <option value="{{ location.name }}">
+                                    {% endfor %}
+                                </datalist>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label text-dark">Quantity*</label>
+                            <input type="number" 
+                                   class="form-control" 
+                                   name="quantity" 
+                                   min="1" 
+                                   value="{{ form_data.quantity if form_data else '1' }}" 
+                                   required>
+                        </div>
+
+                        <div class="d-flex gap-3 justify-content-end mt-4">
+                            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-dark">
+                                <i class="bi bi-save me-2"></i>Add Item
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Custom styling for light theme */
+    .card-body.bg-white {
+        background-color: #ffffff !important;
+        color: #212529;
+    }
+
+    .card-body .form-control {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        color: #212529;
+    }
+
+    .card-body .form-control:focus {
+        background-color: #ffffff;
+        border-color: #303030;
+        box-shadow: 0 0 0 0.25rem rgba(48, 48, 48, 0.25);
+    }
+
+    datalist {
+        background-color: #ffffff;
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+    }
+    
+    datalist option {
+        padding: 0.5rem 1rem;
+        color: #212529;
+    }
+    
+    datalist option:hover {
+        background-color: #f8f9fa;
+    }
+
+    .btn-dark {
+        background-color: #303030;
+        border-color: #303030;
+    }
+
+    .btn-dark:hover {
+        background-color: #404040;
+        border-color: #404040;
+    }
+</style>
+{% endblock %}

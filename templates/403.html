@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container text-center py-5">
+    <h1 class="display-1 text-warning">403</h1>
+    <p class="lead">Access Forbidden</p>
+    <p>You don't have permission to access this resource.</p>
+    <div class="d-flex justify-content-center gap-3">
+        <a href="{{ url_for('index') }}" class="btn btn-primary">
+            <i class="bi bi-house-door"></i> Return Home
+        </a>
+        <a href="{{ url_for('logout') }}" class="btn btn-outline-danger">
+            <i class="bi bi-box-arrow-right"></i> Logout
+        </a>
+    </div>
+</div>
+{% endblock %}

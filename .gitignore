@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.~
+*pip-log.txt
+pip-delete-this-directory.txt
+.Python
+env/
+venv/
+ENV/
+
+# Flask
+instance/
+.webassets-cache
+
+# Databases
+*.db
+*.sqlite3
+
+# Logs
+*.log
+
+# Secrets
+.env
+.flaskenv
+secrets.cfg
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+htmlcov/
+.coverage
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Project-specific scripts and notes
+Dump-Project.ps1
+Project_Tree_Generator.ps1
+TODO.txt
