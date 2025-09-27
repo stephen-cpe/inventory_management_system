@@ -116,7 +116,7 @@
                             </td>
                             <td>₱{{ "%.2f"|format(item.price_per_item or 0) }}</td>
                             <td class="text-end">{{ item.total_quantity }}</td>
-                            <td class="text-end">₱{{ "%.2f"|format((item.total_quantity * (item.price_per_item or 0))) }}</td>
+                            <td class="text-end">₱{{ "%.2f"|format((item.total_quantity|float * (item.price_per_item or 0))) }}</td>
                         </tr>
                         {% else %}
                         <tr>
