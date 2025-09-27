@@ -18,9 +18,13 @@ app.secret_key = os.environ.get('SECRET_KEY', 'dev-insecure-fallback-key')
 db_url = os.environ.get('DATABASE_URL', 'sqlite:///inventory.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'connect_args': {'check_same_thread': False}
-}
+# Only add check_same_thread for SQLite
+if db_url.startswith("sqlite"):
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'connect_args': {'check_same_thread': False}
+    }
+else:
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {}
 
 # Initialize db
 db.init_app(app)

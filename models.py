@@ -119,7 +119,7 @@ class User(db.Model, UserMixin):
 
     def set_password(self, password):
         """Sets the password hash for the user."""
-        self.password_hash = generate_password_hash(password)
+        self.password_hash = generate_password_hash(password, method="pbkdf2:sha256")
 
     def check_password(self, password):
         """Checks if the provided password matches the stored hash."""
