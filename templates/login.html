@@ -20,79 +20,44 @@
         </div>
     </nav>
 
-    <!-- Login Content -->
+    <!-- In login.html, add a message for locked accounts -->
     <div class="container py-5">
-        <div class="login-container">
-            <!-- Flash Messages -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header theme-bg-dark text-white py-3">
+                        <h4 class="mb-0"><i class="bi bi-box-arrow-in-right me-2"></i>Login</h4>
                     </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-
-            <!-- Login Card -->
-            <div class="auth-card card p-4">
-                <h2 class="mb-4 text-center">
-                    <i class="bi bi-box-arrow-in-right"></i> Login
-                </h2>
-                
-                <form method="POST" action="{{ url_for('login') }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
-                    
-                    <!-- Username Input -->
-                    <div class="mb-3">
-                        <label class="form-label">Username</label>
-                        <div class="input-group">
-                            <span class="input-group-text">
-                                <i class="bi bi-person-fill form-icon"></i>
-                            </span>
-                            <input type="text" 
-                                   name="username" 
-                                   class="form-control" 
-                                   required
-                                   value="{{ request.form.username if request.form }}">
-                        </div>
+                    <div class="card-body p-4">
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                        
+                        <form method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="mb-3">
+                                <label class="form-label">Username</label>
+                                <input type="text" class="form-control" name="username" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Password</label>
+                                <input type="password" class="form-control" name="password" required>
+                            </div>
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                                <label class="form-check-label" for="remember">Remember me</label>
+                            </div>
+                            <button type="submit" class="btn btn-dark w-100">Login</button>
+                        </form>
                     </div>
-                    
-                    <!-- Password Input -->
-                    <div class="mb-4">
-                        <label class="form-label">Password</label>
-                        <div class="input-group">
-                            <span class="input-group-text">
-                                <i class="bi bi-lock-fill form-icon"></i>
-                            </span>
-                            <input type="password" 
-                                   name="password" 
-                                   class="form-control" 
-                                   required>
-                        </div>
-                    </div>
-                    
-                    <!-- Remember Me Checkbox -->
-                    <div class="mb-3 form-check">
-                        <input type="checkbox" 
-                               class="form-check-input" 
-                               id="remember" 
-                               name="remember">
-                        <label class="form-check-label" for="remember">
-                            Remember me
-                        </label>
-                    </div>
-                    
-                    <!-- Submit Button -->
-                    <div class="d-grid gap-2">
-                        <button type="submit" 
-                                class="btn btn-primary btn-lg">
-                            <i class="bi bi-box-arrow-in-right me-2"></i> Sign In
-                        </button>
-                    </div>
-                </form>
+                </div>
             </div>
         </div>
     </div>

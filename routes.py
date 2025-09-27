@@ -10,11 +10,12 @@ from sqlalchemy import cast, String
 from io import StringIO, BytesIO
 import csv
 import zipfile
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+from forms import ChangePasswordForm
 
 # Local Imports
 from extensions import db
-from models import User, Inventory, Location, ItemLocation, Movement, DisposedItem
+from models import User, Inventory, Location, ItemLocation, Movement, DisposedItem, LoginAttempt
 from utils import (
     get_or_create_location, process_inventory_row, process_movement_row,
     process_disposed_item_row, generate_inventory_csv, generate_movements_csv,
@@ -32,7 +33,7 @@ def load_user(user_id):
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Handles user login."""
+    """Handles user login with attempt limitation."""
     if current_user.is_authenticated:
         return redirect(url_for('index'))
 
@@ -40,19 +41,48 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         remember = 'remember' in request.form
-
+        
+        # Check if user is locked out
+        twelve_hours_ago = datetime.now(timezone.utc) - timedelta(hours=12)
+        recent_failed_attempts = LoginAttempt.query.filter(
+            LoginAttempt.username == username,
+            LoginAttempt.successful == False,
+            LoginAttempt.attempt_time >= twelve_hours_ago
+        ).count()
+        
+        if recent_failed_attempts >= 5:
+            flash('Account locked due to too many failed login attempts. Please try again later.', 'danger')
+            current_app.logger.warning(f"Login attempt for locked account: '{username}' from {request.remote_addr}")
+            return render_template('login.html')
+        
         user = User.query.filter_by(username=username).first()
+        successful_login = False
 
         if user and user.check_password(password):
             login_user(user, remember=remember)
+            successful_login = True
             current_app.logger.info(f"User '{username}' logged in successfully.")
+            
+            # Clear any previous failed attempts
+            LoginAttempt.query.filter_by(username=username, successful=False).delete()
+            db.session.commit()
+            
             next_page = request.args.get('next')
             if next_page and not next_page.startswith('/'):
                 next_page = url_for('index')
             return redirect(next_page or url_for('index'))
         else:
             flash('Invalid username or password.', 'danger')
-            current_app.logger.warning(f"Failed login attempt for username: '{username}'")
+            current_app.logger.warning(f"Failed login attempt for username: '{username}' from {request.remote_addr}")
+        
+        # Record the login attempt
+        login_attempt = LoginAttempt(
+            username=username,
+            ip_address=request.remote_addr,
+            successful=successful_login
+        )
+        db.session.add(login_attempt)
+        db.session.commit()
 
     return render_template('login.html')
 
@@ -71,9 +101,10 @@ def logout():
 def register():
     """Handles new user registration (Admin only)."""
     if not current_user.is_admin:
-        current_app.logger.warning(f"Non-admin user '{current_user.username}' attempted access to /register.")
-        abort(403)
-
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('index'))
+    
+    # Rest of the function remains the same
     if request.method == 'POST':
         username = request.form.get('username').strip()
         password = request.form.get('password')
@@ -106,6 +137,34 @@ def register():
 
     return render_template('register.html')
 
+@app.route('/change_password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    """Allows a user to change their password."""
+    form = ChangePasswordForm()
+    
+    if form.validate_on_submit():
+        current_password = form.current_password.data
+        new_password = form.new_password.data
+        
+        # Verify current password
+        if not current_user.check_password(current_password):
+            flash('Current password is incorrect.', 'danger')
+            return render_template('change_password.html', form=form)
+        
+        try:
+            current_user.set_password(new_password)
+            db.session.commit()
+            flash('Password changed successfully.', 'success')
+            return redirect(url_for('index'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error changing password: {str(e)}', 'danger')
+            current_app.logger.error(f"Error changing password for user '{current_user.username}': {e}", exc_info=True)
+            return render_template('change_password.html', form=form)
+    
+    return render_template('change_password.html', form=form)
+
 # ---------- INVENTORY ROUTES ---------- #
 
 @app.route('/')
@@ -130,6 +189,8 @@ def add_item():
             description = request.form.get('description', '').strip()
             category = request.form.get('category', 'Uncategorized').strip()
             condition = request.form.get('condition', 'Unknown').strip()
+            date_acquired_str = request.form.get('date_acquired', '').strip()  # New field
+            price_per_item_str = request.form.get('price_per_item', '0.00').strip()  # New field
 
             if not name:
                 raise ValueError("Item name is required.")
@@ -141,6 +202,20 @@ def add_item():
             quantity = int(quantity_str)
             if quantity <= 0:
                 raise ValueError("Quantity must be a positive number.")
+            
+            # Process date_acquired
+            date_acquired = None
+            if date_acquired_str:
+                try:
+                    date_acquired = datetime.strptime(date_acquired_str, '%Y-%m-%d').date()
+                except ValueError:
+                    raise ValueError("Invalid date format. Use YYYY-MM-DD.")
+            
+            # Process price_per_item
+            try:
+                price_per_item = float(price_per_item_str) if price_per_item_str else 0.00
+            except ValueError:
+                raise ValueError("Invalid price format. Use a number like 10.50.")
 
             location = get_or_create_location(location_name)
             item = Inventory.query.filter_by(name=name, description=description).first()
@@ -148,7 +223,8 @@ def add_item():
             if not item:
                 item = Inventory(
                     name=name, description=description,
-                    category=category, condition=condition
+                    category=category, condition=condition,
+                    date_acquired=date_acquired, price_per_item=price_per_item  # New fields
                 )
                 db.session.add(item)
                 db.session.flush()
@@ -197,6 +273,11 @@ def add_item():
 @login_required
 def edit_items():
     """Displays all inventory items for editing, including items with zero stock."""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('index'))
+    
+    # Rest of the function remains the same
     search_query = request.args.get('q', '').strip()
     
     query = Inventory.query.options(
@@ -224,6 +305,10 @@ def edit_items():
 @login_required
 def edit_item(item_id):
     """Edits inventory item details including all stock locations and quantities."""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('index'))
+        
     item = Inventory.query.options(
         db.joinedload(Inventory.locations).joinedload(ItemLocation.location)
     ).get_or_404(item_id)
@@ -234,19 +319,36 @@ def edit_item(item_id):
 
     if request.method == 'POST':
         try:
-            # 1. Process core item data (name, description, etc.)
+            # Process core item data
             item.name = request.form.get('name', '').strip()
             item.description = request.form.get('description', '').strip()
             item.category = request.form.get('category', 'Uncategorized').strip()
             item.condition = request.form.get('condition', 'Unknown').strip()
+            
+            # Process date_acquired
+            date_acquired_str = request.form.get('date_acquired', '').strip()
+            if date_acquired_str:
+                try:
+                    item.date_acquired = datetime.strptime(date_acquired_str, '%Y-%m-%d').date()
+                except ValueError:
+                    raise ValueError("Invalid date format. Use YYYY-MM-DD.")
+            else:
+                item.date_acquired = None
+            
+            # Process price_per_item
+            price_per_item_str = request.form.get('price_per_item', '0.00').strip()
+            try:
+                item.price_per_item = float(price_per_item_str) if price_per_item_str else 0.00
+            except ValueError:
+                raise ValueError("Invalid price format. Use a number like 10.50.")
 
             if not item.name:
                 raise ValueError("Item name cannot be empty.")
 
-            # 2. Process updates for existing locations
+            # Process updates for existing locations
             item_loc_ids = request.form.getlist('item_location_id')
             quantities = request.form.getlist('quantity')
-            location_names = request.form.getlist('location_name') # <-- Get the list of location names
+            location_names = request.form.getlist('location_name')
             
             for i, loc_id in enumerate(item_loc_ids):
                 item_loc = db.session.get(ItemLocation, int(loc_id))
@@ -259,7 +361,7 @@ def edit_item(item_id):
                 if not new_location_name:
                     raise ValueError("Location name cannot be empty.")
 
-                # If quantity is 0, just delete the record and continue
+                # If quantity is 0, delete the record
                 if new_quantity <= 0:
                     db.session.delete(item_loc)
                     continue
@@ -267,25 +369,25 @@ def edit_item(item_id):
                 # Update quantity
                 item_loc.quantity = new_quantity
                 
-                # Check if the location name has been changed
+                # Check if location name has changed
                 if item_loc.location.name != new_location_name:
                     new_location_obj = get_or_create_location(new_location_name)
                     
-                    # IMPORTANT: Check if the item already has stock at the new target location
+                    # Check if item already has stock at the new location
                     target_loc = ItemLocation.query.filter_by(
                         item_id=item.id,
                         location_id=new_location_obj.id
                     ).first()
 
                     if target_loc:
-                        # Merge quantities and delete the old record
+                        # Merge quantities and delete old record
                         target_loc.quantity += new_quantity
                         db.session.delete(item_loc)
                     else:
-                        # Simply re-assign the location if no stock exists at the target
+                        # Re-assign the location
                         item_loc.location_id = new_location_obj.id
 
-            # 3. Handle adding the item to a brand-new location
+            # Handle adding to a new location
             new_location_name = request.form.get('new_location', '').strip()
             new_quantity_str = request.form.get('new_quantity', '').strip()
 
@@ -324,14 +426,17 @@ def edit_item(item_id):
 @login_required
 def delete_items():
     """Displays all inventory items for deletion."""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('index'))
+    
+    # Rest of the function remains the same
     search_query = request.args.get('q', '').strip()
     
-    # Base query with eager loading
     query = Inventory.query.options(
         db.joinedload(Inventory.locations).joinedload(ItemLocation.location)
     ).order_by(Inventory.name)
     
-    # Apply search filter if query exists
     if search_query:
         search_term = f'%{search_query}%'
         query = query.filter(
@@ -343,7 +448,6 @@ def delete_items():
             )
         )
     
-    # Get filter options
     categories = [c[0] for c in db.session.query(Inventory.category.distinct()).all() if c[0]]
     conditions = [c[0] for c in db.session.query(Inventory.condition.distinct()).all() if c[0]]
     locations = [l.name for l in Location.query.order_by(Location.name).all()]
@@ -453,16 +557,12 @@ def transfer():
             # Validate required fields
             item_id = int(request.form.get('item_id', 0))
             from_location_id = int(request.form.get('from_location', 0))
-            to_location_id = int(request.form.get('to_location', 0))
+            to_location_name = request.form.get('to_location', '').strip()  # Changed from ID to name
             quantity = int(request.form.get('quantity', 0))
             responsible = request.form.get('responsible', current_user.username).strip()
             
-            if not all([item_id, from_location_id, to_location_id, quantity]):
+            if not all([item_id, from_location_id, to_location_name, quantity]):
                 flash("All fields are required", "danger")
-                return redirect(url_for('transfer'))
-            
-            if from_location_id == to_location_id:
-                flash("Source and destination locations must be different", "danger")
                 return redirect(url_for('transfer'))
             
             if quantity <= 0:
@@ -479,16 +579,24 @@ def transfer():
                 flash("Insufficient stock in source location", "danger")
                 return redirect(url_for('transfer'))
 
+            # Get or create destination location
+            to_location = get_or_create_location(to_location_name)
+            
+            # Check if source and destination are the same
+            if from_location_id == to_location.id:
+                flash("Source and destination locations must be different", "danger")
+                return redirect(url_for('transfer'))
+
             # Find/Create destination stock
             destination = ItemLocation.query.filter_by(
                 item_id=item_id,
-                location_id=to_location_id
+                location_id=to_location.id
             ).first()
             
             if not destination:
                 destination = ItemLocation(
                     item_id=item_id,
-                    location_id=to_location_id,
+                    location_id=to_location.id,
                     quantity=0
                 )
                 db.session.add(destination)
@@ -502,7 +610,7 @@ def transfer():
                 item_id=item_id,
                 quantity=quantity,
                 from_location_id=from_location_id,
-                to_location_id=to_location_id,
+                to_location_id=to_location.id,
                 movement_date=datetime.now(timezone.utc),
                 responsible_person=responsible
             )

@@ -32,15 +32,16 @@
                                       rows="2">{{ item.description }}</textarea>
                         </div>
 
+                        <!-- In edit_item.html, add the new fields after the existing fields -->
                         <div class="row g-4 mb-4">
                             <div class="col-md-4">
                                 <label class="form-label text-dark">Category*</label>
                                 <input type="text" 
-                                       class="form-control" 
-                                       name="category" 
-                                       list="categories" 
-                                       value="{{ item.category }}"
-                                       required>
+                                    class="form-control" 
+                                    name="category" 
+                                    list="categories" 
+                                    value="{{ item.category }}"
+                                    required>
                                 <datalist id="categories">
                                     {% for category in categories %}
                                     <option value="{{ category }}">
@@ -51,18 +52,41 @@
                             <div class="col-md-4">
                                 <label class="form-label text-dark">Condition*</label>
                                 <input type="text" 
-                                       class="form-control" 
-                                       name="condition" 
-                                       list="conditions" 
-                                       value="{{ item.condition }}"
-                                       required>
+                                    class="form-control" 
+                                    name="condition" 
+                                    list="conditions" 
+                                    value="{{ item.condition }}"
+                                    required>
                                 <datalist id="conditions">
                                     {% for condition in conditions %}
                                     <option value="{{ condition }}">
                                     {% endfor %}
                                 </datalist>
                             </div>
-                            
+                        </div>
+
+                        <!-- Add new fields for Date Acquired and Price Per Item -->
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label text-dark">Date Acquired</label>
+                                <input type="date" 
+                                    class="form-control" 
+                                    name="date_acquired" 
+                                    value="{{ item.date_acquired.strftime('%Y-%m-%d') if item.date_acquired else '' }}">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label text-dark">Price Per Item</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₱</span>
+                                    <input type="number" 
+                                        class="form-control" 
+                                        name="price_per_item" 
+                                        step="0.01" 
+                                        min="0" 
+                                        value="{{ item.price_per_item or 0.00 }}">
+                                </div>
+                            </div>
                         </div>
 
                         <fieldset class="border p-3 mb-4">

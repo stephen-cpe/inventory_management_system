@@ -63,55 +63,51 @@
         <!-- Card Body (Table) -->
         <div class="card-body p-0 stable-scroll-area">
             <div class="stable-table-container">
+                <!-- In movements.html, update the table to include new fields -->
                 <table class="table table-hover align-middle mb-0 table-header-lock">
                     <thead class="table-light">
                         <tr>
+                            <th>Date</th>
                             <th>Item</th>
-                            <th class="text-center">Qty</th>
                             <th>From</th>
                             <th>To</th>
-                            <th>Date</th>
+                            <th class="text-center">Quantity</th>
                             <th>Responsible</th>
+                            
                         </tr>
                     </thead>
                     <tbody>
                         {% for movement in movements %}
                         <tr>
+                            <td>{{ movement.movement_date|datetimeformat('%b %d, %Y %H:%M') }}</td>
                             <td>
                                 <strong>{{ movement.item.name }}</strong>
                                 {% if movement.item.description %}
                                 <div class="text-muted small">{{ movement.item.description }}</div>
                                 {% endif %}
                             </td>
-                            <td class="text-center">
-                                <span class="badge bg-primary rounded-pill">{{ movement.quantity }}</span>
-                            </td>
                             <td>
                                 {% if movement.from_location %}
-                                <span class="badge bg-secondary">
-                                    <i class="bi bi-geo-alt"></i> 
-                                    {{ movement.from_location.name }}
-                                </span>
+                                {{ movement.from_location.name }}
                                 {% else %}
-                                <span class="badge bg-warning text-dark">N/A</span>
+                                <span class="text-muted">N/A</span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if movement.to_location %}
-                                <span class="badge bg-primary">
-                                    <i class="bi bi-geo-alt"></i> 
-                                    {{ movement.to_location.name }}
-                                </span>
+                                {{ movement.to_location.name }}
                                 {% else %}
-                                <span class="badge bg-warning text-dark">N/A</span>
+                                <span class="text-muted">N/A</span>
                                 {% endif %}
                             </td>
-                            <td>{{ movement.movement_date|datetimeformat('%b %d, %Y %H:%M') }}</td>
-                            <td>{{ movement.responsible_person }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-primary rounded-pill">{{ movement.quantity }}</span>
+                            </td>
+                            <td>{{ movement.responsible_person or 'N/A' }}</td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-4">
+                            <td colspan="7" class="text-center text-muted py-4">
                                 No movement records found
                             </td>
                         </tr>

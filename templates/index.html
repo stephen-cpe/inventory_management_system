@@ -58,45 +58,24 @@
 
         <div class="card-body p-0 stable-scroll-area">
             <div class="stable-table-container">
+                <!-- In index.html, update the table structure -->
                 <table class="table table-hover align-middle mb-0 table-header-lock">
                     <thead class="table-light">
                         <tr>
+                            <th>Actions</th>
                             <th>Item</th>
+                            <th>Locations</th>
                             <th>Category</th>
                             <th>Condition</th>
-                            <th>Locations</th>
-                            <th class="text-end">Total Qty</th>
-                            <th>Actions</th>
+                            <th>Date Acquired</th>
+                            <th>Price Per Item</th>
+                            <th class="text-end">Total Quantity</th>
+                            <th class="text-end">Price Total</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in inventory %}
                         <tr>
-                            <td>
-                                <strong>{{ item.name }}</strong>
-                                {% if item.description %}
-                                <div class="text-muted small">{{ item.description }}</div>
-                                {% endif %}
-                            </td>
-                            <td>{{ item.category or 'Uncategorized' }}</td>
-                            <td>
-                                <span class="badge bg-secondary">
-                                    {{ item.condition or 'N/A' }}
-                                </span>
-                            </td>
-                            <td>
-								<ul class="list-unstyled mb-0">
-									{% for loc in item.locations if loc.quantity > 0 %}  <!-- Added quantity check -->
-									<li>
-										<i class="bi bi-geo-alt"></i> 
-										{{ loc.location.name }} ({{ loc.quantity }})
-									</li>
-									{% else %}
-									<li class="text-muted">No stock locations</li>
-									{% endfor %}
-								</ul>
-							</td>
-                            <td class="text-end">{{ item.total_quantity }}</td>
                             <td>
                                 <div class="d-flex gap-2">
                                     <a href="{{ url_for('transfer', item_id=item.id) }}" 
@@ -111,10 +90,44 @@
                                     </a>
                                 </div>
                             </td>
+                            <td>
+                                <strong>{{ item.name }}</strong>
+                                {% if item.description %}
+                                <div class="text-muted small">{{ item.description }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <ul class="list-unstyled mb-0">
+                                    {% for loc in item.locations if loc.quantity > 0 %}
+                                    <li>
+                                        <i class="bi bi-geo-alt"></i> 
+                                        {{ loc.location.name }} ({{ loc.quantity }})
+                                    </li>
+                                    {% else %}
+                                    <li class="text-muted">No stock locations</li>
+                                    {% endfor %}
+                                </ul>
+                            </td>
+                            <td>{{ item.category or 'Uncategorized' }}</td>
+                            <td>
+                                <span class="badge bg-secondary">
+                                    {{ item.condition or 'N/A' }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if item.date_acquired %}
+                                    {{ item.date_acquired.strftime('%Y-%m-%d') }}
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>₱{{ "%.2f"|format(item.price_per_item or 0) }}</td>
+                            <td class="text-end">{{ item.total_quantity }}</td>
+                            <td class="text-end">₱{{ "%.2f"|format((item.total_quantity * (item.price_per_item or 0))) }}</td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-4">
+                            <td colspan="9" class="text-center text-muted py-4">
                                 No inventory items found
                             </td>
                         </tr>

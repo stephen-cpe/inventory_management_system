@@ -16,6 +16,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark theme-bg-dark">
 
         <div class="container-fluid">
+            <!-- Conditionally show admin-only buttons in the navbar -->
             <div class="d-flex align-items-center">
                 <a class="navbar-brand" href="{{ url_for('index') }}">
                     <i class="bi bi-house-door nav-brand-icon"></i> Church Inventory
@@ -24,12 +25,14 @@
                 <a href="{{ url_for('add_item') }}" class="btn btn-outline-light btn-sm ms-3 {% if active_page == 'add_item' %}active{% endif %}">
                     <i class="bi bi-plus-square me-1"></i> Add Item
                 </a>
-				<a href="{{ url_for('edit_items') }}" class="btn btn-outline-light btn-sm ms-3 {% if active_page == 'edit_items' %}active{% endif %}">
-					<i class="bi bi-pencil-square me-1"></i> Edit Item
-				</a>
-				<a href="{{ url_for('delete_items') }}" class="btn btn-outline-light btn-sm ms-3 {% if active_page == 'delete_items' %}active{% endif %}">
+                {% if current_user.is_admin %}
+                <a href="{{ url_for('edit_items') }}" class="btn btn-outline-light btn-sm ms-3 {% if active_page == 'edit_items' %}active{% endif %}">
+                    <i class="bi bi-pencil-square me-1"></i> Edit Item
+                </a>
+                <a href="{{ url_for('delete_items') }}" class="btn btn-outline-light btn-sm ms-3 {% if active_page == 'delete_items' %}active{% endif %}">
                     <i class="bi bi-x-square me-1"></i> Delete Item
                 </a>
+                {% endif %}
                 {% endif %}
             </div>
         
@@ -45,14 +48,16 @@
                             <i class="bi bi-person-circle"></i> {{ current_user.username }}
                         </a>
                         
+                        <!-- In base.html, update the dropdown menu -->
                         <ul class="dropdown-menu dropdown-menu-end">
                             {% if current_user.is_admin %}
                             <li><a class="dropdown-item" href="{{ url_for('register') }}"><i class="bi bi-person-plus"></i> Add User</a></li>
                             {% endif %}
                             <li><a class="dropdown-item" href="{{ url_for('export_csv', type='all') }}"><i class="bi bi-boxes"></i> Export All Data</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('download_template', type='all') }}">
-							<i class="bi bi-file-earmark-zip"></i> Download All Templates </a></li>
+                                <i class="bi bi-file-earmark-zip"></i> Download All Templates </a></li>
                             <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('change_password') }}"><i class="bi bi-key"></i> Change Password</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
                         </ul>
                     </div>

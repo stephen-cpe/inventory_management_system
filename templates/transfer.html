@@ -39,32 +39,36 @@
                         </select>
                     </div>
 
-                    <!-- Destination Location -->
-					<div class="col-md-6">
-						<label class="form-label">To Location</label>
-						<select class="form-select" name="to_location" required>
-							<option value="">Select destination...</option>
-							{% for location in all_locations %}
-								{% if selected_item %}
-									{# Only exclude the currently selected FROM location #}
-									{% if location.id != request.form.get('from_location', 0)|int %}
-										<option value="{{ location.id }}">{{ location.name }}</option>
-									{% endif %}
-								{% else %}
-									<option value="{{ location.id }}">{{ location.name }}</option>
-								{% endif %}
-							{% endfor %}
-						</select>
-					</div>
+                    <!-- In transfer.html, change the To Location field -->
+                    <div class="col-md-6">
+                        <label class="form-label">To Location</label>
+                        <input type="text" 
+                            class="form-control" 
+                            name="to_location" 
+                            list="locations_list"
+                            required>
+                        <datalist id="locations_list">
+                            {% for location in all_locations %}
+                            <option value="{{ location.name }}">
+                            {% endfor %}
+                        </datalist>
+                    </div>
 
                     <!-- Quantity Input -->
                     <div class="col-md-6">
                         <label class="form-label">Quantity</label>
                         <input type="number" 
-                               class="form-control" 
-                               name="quantity" 
-                               min="1" 
-                               required>
+                            class="form-control" 
+                            name="quantity" 
+                            min="1" 
+                            {% if selected_item %}
+                                {% for location, qty in available_locations %}
+                                    {% if loop.first %}
+                                        max="{{ qty }}"
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                            required>
                     </div>
 
                     <!-- Responsible Person -->

@@ -9,7 +9,7 @@ from extensions import db  # Import db from extensions
 from flask_migrate import Migrate
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
-
+from forms import ChangePasswordForm
 
 
 # --- App Configuration ---
@@ -27,12 +27,6 @@ db.init_app(app)
 
 csrf = CSRFProtect(app)
 
-# Add this after db initialization
-with app.app_context():
-    # Enable foreign key constraints for SQLite
-    if 'sqlite' in db_url:
-        db.session.execute(text('PRAGMA foreign_keys = ON'))
-        db.session.commit()  # Commit the pragma statement
 
 # --- Other Extensions ---
 migrate = Migrate(app, db)
@@ -125,6 +119,22 @@ def create_admin():
         db.session.rollback()
         print(f"Error creating admin user: {e}")
         app.logger.error(f"Error creating admin user '{username}' via CLI: {e}", exc_info=True)
+
+@app.cli.command("reset-login-attempts")
+def reset_login_attempts():
+    """Resets failed login attempts for a specific user or all users."""
+    username = input("Enter username to reset (leave blank to reset all): ").strip()
+    
+    if username:
+        count = LoginAttempt.query.filter_by(username=username, successful=False).delete()
+        print(f"Reset {count} failed login attempts for user '{username}'.")
+        app.logger.info(f"Reset login attempts for user '{username}' via CLI.")
+    else:
+        count = LoginAttempt.query.filter_by(successful=False).delete()
+        print(f"Reset {count} failed login attempts for all users.")
+        app.logger.info("Reset all login attempts via CLI.")
+    
+    db.session.commit()
 
 # --- Error Handling ---
 @app.errorhandler(404)

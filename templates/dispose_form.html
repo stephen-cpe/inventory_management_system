@@ -6,6 +6,7 @@
         <h5 class="mb-0"><i class="bi bi-exclamation-octagon"></i> Dispose Item: {{ item.name }}</h5>
     </div>
     
+    <!-- In dispose_form.html, add the new fields to the display -->
     <div class="card-body">
         <form method="POST" id="disposalForm">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -30,9 +31,9 @@
                         <div class="col-md-5">
                             <label class="form-label">Quantity to Dispose*</label>
                             <input type="number" name="quantity" 
-                                   class="form-control theme-form-control" 
-                                   min="1" 
-                                   required>
+                                class="form-control theme-form-control" 
+                                min="1" 
+                                required>
                         </div>
                     </div>
                 </div>
@@ -54,9 +55,9 @@
                 <div class="col-md-6">
                     <label class="form-label">Date*</label>
                     <input type="date" name="date" 
-                           class="form-control theme-form-control" 
-                           value="{{ date_today }}" 
-                           required>
+                        class="form-control theme-form-control" 
+                        value="{{ date_today }}" 
+                        required>
                 </div>
             </div>
 

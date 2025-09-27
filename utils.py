@@ -137,24 +137,30 @@ def generate_inventory_csv():
     """
     output = StringIO()
     writer = csv.writer(output)
-    writer.writerow(['Item ID', 'Name', 'Description', 'Category', 'Condition', 'Location', 'Quantity'])
+    # Updated header row with new fields and proper order
+    writer.writerow(['Item ID', 'Name', 'Description', 'Category', 'Condition', 
+                     'Date Acquired', 'Price Per Item', 'Location', 'Quantity'])
+    
+    # Get all items with positive stock
     items = Inventory.query.options(
         db.joinedload(Inventory.locations).joinedload(ItemLocation.location)
-    ).filter(
-        Inventory.locations.any(ItemLocation.quantity > 0)
-    ).all()
+    ).filter(Inventory.locations.any(ItemLocation.quantity > 0)).order_by(Inventory.name).all()
+    
     for item in items:
-        for loc in item.locations:
-            if loc.quantity > 0:
+        for item_loc in item.locations:
+            if item_loc.quantity > 0:
                 writer.writerow([
                     item.id,
                     item.name,
-                    item.description,
-                    item.category,
-                    item.condition,
-                    loc.location.name,
-                    loc.quantity
+                    item.description or '',
+                    item.category or '',
+                    item.condition or '',
+                    item.date_acquired.strftime('%Y-%m-%d') if item.date_acquired else '',
+                    item.price_per_item or 0.00,
+                    item_loc.location.name,
+                    item_loc.quantity
                 ])
+    
     return output.getvalue()
 
 def generate_movements_csv():
@@ -209,12 +215,18 @@ def generate_disposals_csv():
 
 def generate_inventory_template():
     """
-    Generates a CSV template for inventory import.
+    Generates a CSV template for inventory import with proper headers.
     """
     output = StringIO()
     writer = csv.writer(output)
-    writer.writerow(['Name', 'Location', 'Quantity', 'Description', 'Category', 'Condition'])
-    writer.writerow(['Altar Candle', 'Sacristy', 10, 'Beeswax candles, 12" height', 'Liturgical', 'New'])
+    # Updated header row with new fields and proper order
+    writer.writerow(['Name', 'Description', 'Category', 'Condition', 
+                     'Date Acquired', 'Price Per Item', 'Location', 'Quantity'])
+    
+    # Add a sample row
+    writer.writerow(['Sample Item', 'Sample Description', 'Sample Category', 
+                     'Good Condition', '2023-01-15', '10.50', 'Main Warehouse', '5'])
+    
     return output.getvalue()
 
 def generate_movements_template():
