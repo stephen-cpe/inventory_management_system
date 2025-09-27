@@ -1,0 +1,46 @@
+﻿Item ID,Name,Description,Category,Condition,Location,Quantity
+1,Laptop,Test,Electronics,New,Youth Room,1
+1,Laptop,Test,Electronics,New,Chapel Storage,30
+1,Laptop,Test,Electronics,New,Main Church,15
+1,Laptop,Test,Electronics,New,Ubay,2
+2,Pew,Oak Bench,Furniture,Used,Chapel Storage,1
+2,Pew,Oak Bench,Furniture,Used,Main Church,38
+3,Hymnal,NIV Hardcover,Books,New,Youth Room,70
+4,Offering Plate,Gold-Plated,Utensils,Good,Main Church,30
+5,Projector,HDMI Enabled,Electronics,Fair,Main Church,5
+5,Projector,HDMI Enabled,Electronics,Fair,Office Closet,2
+5,Projector,HDMI Enabled,Electronics,Fair,Ubay,2
+6,Pews,Oak pews (15 units),Furniture,Needs Repair,Main Church,15
+7,LED Projector,Epson 4K Ultra HD Projector,Audio-Visual,Excellent,Sanctuary,10
+8,Portable Speaker,Bose S1 Pro Bluetooth Speaker,Audio-Visual,Excellent,Fellowship Hall,20
+9,Folding Table,6ft Lifetime Folding Table,Furniture,Good,Multi-Purpose Room,10
+9,Folding Table,6ft Lifetime Folding Table,Furniture,Good,Pena Beach,30
+10,Smart TV,"Samsung 55"" 4K UHD Smart TV",Audio-Visual,New,Youth Room,9
+10,Smart TV,"Samsung 55"" 4K UHD Smart TV",Audio-Visual,New,Main Church,5
+11,Live Streaming Camera,Canon VIXIA HF G50 4K Camcorder,Audio-Visual,New,Sanctuary,10
+12,Portable Stage Platform,IntelliStage 4x4 Modular Platform,Furniture,Excellent,Outreach Center,30
+13,Wi-Fi Router,TP-Link AX6000 Wi-Fi 6 Router,Technology,New,Office,15
+14,LED Stage Lighting,Chauvet DJ LED Par Can Lights,Lighting,Excellent,Main Stage,40
+15,Tablet,Apple iPad Air (Latest Model),Technology,New,Bacolod Outreach,1
+15,Tablet,Apple iPad Air (Latest Model),Technology,New,Welcome Desk,16
+16,Portable Generator,Honda EU2200i Inverter Generator,Equipment,Good,Storage Room,5
+17,Digital Signage Display,"LG 43"" Digital Signage Monitor",Audio-Visual,New,Office,1
+18,Study Bible,NIV Study Bible with Commentary,Books,Old,Library,150
+19,Pulpit Bible,Large-Print ESV Preaching Bible,Books,Good,Sanctuary,4
+20,Round Folding Table,5ft Lifetime Round Folding Table,Furniture,Used,Fellowship Hall,32
+21,Electric Fan,From ACE Hardware,Electrical Appliances,New,Main Church,7
+21,Electric Fan,From ACE Hardware,Electrical Appliances,New,Lobby,5
+21,Electric Fan,From ACE Hardware,Electrical Appliances,New,Café Area,2
+22,Old Carpet,Carpet,Furniture,None,Pulupandan,10
+23,Printer,Epson,Electronics,Used,Ubay,1
+23,Printer,Epson,Electronics,Used,Music Room,2
+23,Printer,Epson,Electronics,Used,Manzanilla,3
+24,Mobile Phone,Nokia 3310,Electronics,Old,Café Area,25
+25,Bible,NIV,Bible,New,Ubay,15
+25,Bible,NIV,Bible,New,Manzanilla,15
+26,Chair,Minobloc,Furniture,New,Ubay,25
+26,Chair,Minobloc,Furniture,New,Pena Beach,10
+27,TV,Sharp,Audio-Visual,New,Main Church,1
+28,Altar Candle,"Beeswax candles, 12"" height",Liturgical,New,Sacristy,15
+29,Laptop Lenovo,Test Lenovo,Electronics,New,Main Church,5
+30,Laptop Asus,Test Asus,Electronics,New,Chapel Storage,10
