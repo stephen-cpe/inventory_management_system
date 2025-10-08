@@ -5,65 +5,54 @@
 {% block content %}
 <div class="container py-4">
     <div class="card shadow-sm main-content-card"> 
-        <!-- Card Header with Primary Theme -->
         <div class="card-header theme-bg-primary text-white fixed-header">
-            <div class="row align-items-center g-3">
-                <!-- Navigation Tabs - Left Side -->
-                <div class="col-12 col-md-8">
-                    <div class="d-flex flex-nowrap overflow-auto pb-2" style="gap: 0.5rem;">
-                        <a href="{{ url_for('index') }}" class="nav-theme btn btn-outline-light flex-shrink-0">
-                            <h5 class="mb-0 fs-5"><i class="bi bi-box-seam"></i> Current Inventory</h5>
-                        </a>
-                        <a href="{{ url_for('movements') }}" class="nav-theme btn btn-outline-light active flex-shrink-0">
-                            <h5 class="mb-0 fs-5"><i class="bi bi-arrow-left-right"></i> Movement Tracker</h5>
-                        </a>
-                        <a href="{{ url_for('disposed_inventory') }}" class="nav-theme btn btn-outline-light flex-shrink-0">
-                            <h5 class="mb-0 fs-5"><i class="bi bi-trash3"></i> Disposed Items</h5>
-                        </a>
+            <div class="d-flex flex-wrap justify-content-between align-items-center w-100">
+                <div class="d-flex align-items-center flex-nowrap overflow-auto pb-2" style="gap: 0.5rem;">
+                    <a href="{{ url_for('index') }}" class="nav-theme btn btn-outline-light flex-shrink-0">
+                        <h5 class="mb-0 fs-5"><i class="bi bi-box-seam"></i> <span class="d-none d-md-inline">Current Inventory</span></h5>
+                    </a>
+                    <a href="{{ url_for('movements') }}" class="nav-theme btn btn-outline-light active flex-shrink-0">
+                        <h5 class="mb-0 fs-5"><i class="bi bi-arrow-left-right"></i> <span class="d-none d-md-inline">Movement Tracker</span></h5>
+                    </a>
+                    <a href="{{ url_for('disposed_inventory') }}" class="nav-theme btn btn-outline-light flex-shrink-0">
+                        <h5 class="mb-0 fs-5"><i class="bi bi-trash3"></i> <span class="d-none d-md-inline">Disposed Items</span></h5>
+                    </a>
+                    <div class="search-container flex-shrink-0 d-md-none ms-2">
+                        <form class="d-flex align-items-center" action="{{ url_for('movements') }}" method="GET">
+                            <div class="input-group">
+                                <input type="search" class="form-control theme-search" name="q" placeholder="Search..." value="{{ search_query }}">
+                                <button type="submit" class="btn theme-search-btn"><i class="bi bi-search"></i></button>
+                            </div>
+                        </form>
                     </div>
                 </div>
 
-                <!-- Controls - Right Side -->
-                <div class="col-12 col-md-4">
-                    <div class="d-flex flex-column flex-md-row gap-2 justify-content-end">
-                        <!-- CSV Controls -->
-                        <div class="d-flex gap-2 flex-wrap flex-md-nowrap mobile-hidden">
-                            <button type="button" class="btn theme-control-btn" data-bs-toggle="modal" data-bs-target="#importModal">
-                                <i class="bi bi-upload"></i> Import
-                            </button>
-                            <a href="{{ url_for('export_csv', type='movements') }}" class="btn theme-control-btn">
-								<i class="bi bi-download"></i> Export
-							</a>
-                            <a href="{{ url_for('download_template', type='movements') }}" class="btn theme-control-btn">
-								<i class="bi bi-file-earmark-arrow-down"></i> Template
-							</a>
-                        </div>
-
-                        <!-- Search Form -->
-                        <div class="search-container flex-shrink-0">
-            <form class="d-flex align-items-center" action="{{ url_for('movements') }}" method="GET">
-                <div class="input-group">
-                    <input type="search" 
-                           class="form-control theme-search"
-                           name="q"
-                           placeholder="Search movements..."
-                           value="{{ search_query }}">
-                    <button type="submit" class="btn theme-search-btn">
-                        <i class="bi bi-search"></i>
-                    </button>
-                </div>
-            </form>
-        </div>
-
+                <div class="d-none d-md-flex flex-column flex-md-row gap-2 justify-content-end">
+                    <div class="d-flex gap-2 flex-wrap flex-md-nowrap">
+                        <button type="button" class="btn theme-control-btn" data-bs-toggle="modal" data-bs-target="#importModal">
+                            <i class="bi bi-upload"></i> Import
+                        </button>
+                        <a href="{{ url_for('export_csv', type='movements') }}" class="btn theme-control-btn">
+                            <i class="bi bi-download"></i> Export
+                        </a>
+                        <a href="{{ url_for('download_template', type='movements') }}" class="btn theme-control-btn">
+                            <i class="bi bi-file-earmark-arrow-down"></i> Template
+                        </a>
+                    </div>
+                    <div class="search-container flex-shrink-0">
+                        <form class="d-flex align-items-center" action="{{ url_for('movements') }}" method="GET">
+                            <div class="input-group">
+                                <input type="search" class="form-control theme-search" name="q" placeholder="Search..." value="{{ search_query }}">
+                                <button type="submit" class="btn theme-search-btn"><i class="bi bi-search"></i></button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Card Body (Table) -->
         <div class="card-body p-0 stable-scroll-area">
             <div class="stable-table-container">
-                <!-- In movements.html, update the table to include new fields -->
                 <table class="table table-hover align-middle mb-0 table-header-lock">
                     <thead class="table-light">
                         <tr>
@@ -73,7 +62,6 @@
                             <th>To</th>
                             <th class="text-center">Quantity</th>
                             <th>Responsible</th>
-                            
                         </tr>
                     </thead>
                     <tbody>
@@ -118,7 +106,6 @@
         </div>
     </div>
 
-    <!-- Import Modal -->
     <div class="modal fade" id="importModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">

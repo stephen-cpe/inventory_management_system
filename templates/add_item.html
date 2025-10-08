@@ -80,17 +80,16 @@
                             </div>
                         </div>
 
-                        <!-- Add new fields for Date Acquired and Price Per Item -->
+                        <!-- Group Date Acquired, Price Per Item, and Quantity in one row -->
                         <div class="row g-4 mb-4">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label class="form-label text-dark">Date Acquired</label>
                                 <input type="date" 
                                     class="form-control" 
                                     name="date_acquired" 
                                     value="{{ form_data.date_acquired if form_data }}">
                             </div>
-
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label class="form-label text-dark">Price Per Item</label>
                                 <div class="input-group">
                                     <span class="input-group-text">₱</span>
@@ -102,16 +101,15 @@
                                         value="{{ form_data.price_per_item if form_data else '0.00' }}">
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label text-dark">Quantity*</label>
-                            <input type="number" 
-                                class="form-control" 
-                                name="quantity" 
-                                min="1" 
-                                value="{{ form_data.quantity if form_data else '1' }}" 
-                                required>
+                            <div class="col-md-4">
+                                <label class="form-label text-dark">Quantity*</label>
+                                <input type="number" 
+                                    class="form-control" 
+                                    name="quantity" 
+                                    min="1" 
+                                    value="{{ form_data.quantity if form_data else '1' }}" 
+                                    required>
+                            </div>
                         </div>
 
                         <div class="d-flex gap-3 justify-content-end mt-4">

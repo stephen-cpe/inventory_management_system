@@ -34,7 +34,7 @@
 
                         <!-- In edit_item.html, add the new fields after the existing fields -->
                         <div class="row g-4 mb-4">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="form-label text-dark">Category*</label>
                                 <input type="text" 
                                     class="form-control" 
@@ -48,8 +48,7 @@
                                     {% endfor %}
                                 </datalist>
                             </div>
-
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="form-label text-dark">Condition*</label>
                                 <input type="text" 
                                     class="form-control" 
@@ -63,19 +62,14 @@
                                     {% endfor %}
                                 </datalist>
                             </div>
-                        </div>
-
-                        <!-- Add new fields for Date Acquired and Price Per Item -->
-                        <div class="row g-4 mb-4">
-                            <div class="col-md-6">
+                            <div class="col-md-3">
                                 <label class="form-label text-dark">Date Acquired</label>
                                 <input type="date" 
                                     class="form-control" 
                                     name="date_acquired" 
                                     value="{{ item.date_acquired.strftime('%Y-%m-%d') if item.date_acquired else '' }}">
                             </div>
-
-                            <div class="col-md-6">
+                            <div class="col-md-3">
                                 <label class="form-label text-dark">Price Per Item</label>
                                 <div class="input-group">
                                     <span class="input-group-text">₱</span>

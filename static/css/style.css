@@ -15,10 +15,17 @@
     vertical-align: middle;
 }
 
+.navbar-brand,
+.nav-brand-icon  {
+    font-size: 1.5rem;      /* Adjust as needed, e.g., 2.5rem or 32px */
+    font-weight: bold;    /* Optional: makes it stand out */
+}
+
 .nav-brand-icon {
-    font-size: 1.5rem;
     margin-right: 0.5rem;
 }
+
+
 
 /* ===== THEME SYSTEM ===== */
 .theme-bg-success { background-color: #1a5632 !important; }
@@ -52,19 +59,6 @@
     position: relative;
     border: none !important;
     transition: all 0.3s ease;
-}
-
-.nav-theme.active::after,
-.btn-outline-light.btn-sm.active::after {
-    content: '';
-    display: block;
-    width: 100%;
-    height: 3px;
-    background: #fff;
-    position: absolute;
-    bottom: -1px;
-    left: 0;
-    animation: border-appear 0.3s ease;
 }
 
 /* ===== BUTTON STYLES ===== */
@@ -220,6 +214,14 @@
     .mobile-hidden {
         /* Utility class to hide CSV controls on mobile */
         display: none !important;
+    }
+
+    .mobile-nav-btn {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+    .mobile-nav-btn .me-1 {
+        margin-right: 0 !important;
     }
 }
 
