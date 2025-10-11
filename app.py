@@ -18,13 +18,25 @@ app.secret_key = os.environ.get('SECRET_KEY', 'dev-insecure-fallback-key')
 db_url = os.environ.get('DATABASE_URL', 'sqlite:///inventory.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-# Only add check_same_thread for SQLite
+
+# Enhanced database connection pooling for PythonAnywhere free tier
 if db_url.startswith("sqlite"):
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        'connect_args': {'check_same_thread': False}
+        'connect_args': {'check_same_thread': False},
+        'pool_size': 5,           # PythonAnywhere free tier limit
+        'pool_recycle': 280,      # Just under their 5-minute timeout
+        'pool_pre_ping': True,
+        'pool_timeout': 10,       # Wait up to 10 seconds for connection
+        'max_overflow': 2         # Additional connections when pool exhausted
     }
 else:
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {}
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_size': 5,           # PythonAnywhere free tier limit
+        'pool_recycle': 280,      # Just under their 5-minute timeout
+        'pool_pre_ping': True,
+        'pool_timeout': 10,       # Wait up to 10 seconds for connection
+        'max_overflow': 2         # Additional connections when pool exhausted
+    }
 
 # Initialize db
 db.init_app(app)
@@ -140,6 +152,19 @@ def reset_login_attempts():
     
     db.session.commit()
 
+# --- Enhanced Caching for Static Assets ---
+@app.after_request
+def add_header(response):
+    if request.path.startswith('/static/'):
+        # Cache static assets for 1 day
+        response.cache_control.public = True
+        response.cache_control.max_age = 86400
+        # Remove version parameter for caching
+        if '?' in request.path:
+            response.cache_control.max_age = 31536000  # 1 year for versioned assets
+    return response
+
+
 # --- Error Handling ---
 @app.errorhandler(404)
 def page_not_found(e):
@@ -156,6 +181,7 @@ def internal_server_error(e):
     app.logger.error(f"500 Internal Server Error: {request.url} ({e})", exc_info=True)
     try:
         db.session.rollback()
+        db.session.remove()  # Release connection back to pool
         app.logger.info("Rolled back database session after 500 error.")
     except Exception as rollback_e:
         app.logger.error(f"Error during rollback after 500 error: {rollback_e}", exc_info=True)

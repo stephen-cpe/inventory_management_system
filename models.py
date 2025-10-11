@@ -2,6 +2,7 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from extensions import db
 from datetime import datetime, timezone
+from config import PAGINATION_SETTINGS
 
 class Location(db.Model):
     """Represents different locations where inventory items are stored."""
@@ -27,20 +28,98 @@ class Inventory(db.Model):
     date_acquired = db.Column(db.Date, nullable=True)  # New field
     price_per_item = db.Column(db.Float, nullable=True, default=0.00)  # New field
 
-    # Relationships remain unchanged
-    locations = db.relationship('ItemLocation', back_populates='item', lazy='joined', cascade="all, delete-orphan")
-    movements = db.relationship('Movement', back_populates='item', lazy='joined', cascade="all, delete-orphan")
-    disposals = db.relationship('DisposedItem', back_populates='item', cascade="all, delete-orphan", lazy='joined')
+    # Relationships - using 'select' lazy loading for better performance
+    # Use 'joined' only when you need to ensure the relationship is loaded with the item
+    locations = db.relationship('ItemLocation', back_populates='item', lazy='select', cascade="all, delete-orphan")
+    movements = db.relationship('Movement', back_populates='item', lazy='select', cascade="all, delete-orphan")
+    disposals = db.relationship('DisposedItem', back_populates='item', cascade="all, delete-orphan", lazy='select')
 
     def __repr__(self):
         return f'<Inventory {self.name}>'
 
     @property
     def total_quantity(self):
-        """Calculates the total quantity across all locations."""
+        """Calculates the total quantity across all locations.
+        For efficiency in lists, use total_quantity_cached when available."""
+        # If cached value exists, use it to avoid N+1 query
+        if hasattr(self, 'total_quantity_cached'):
+            return self.total_quantity_cached
+        
+        # Otherwise, fall back to the original query
         return db.session.query(db.func.sum(ItemLocation.quantity))\
                          .filter(ItemLocation.item_id == self.id)\
                          .scalar() or 0
+
+    @classmethod
+    def preload_total_quantities(cls, items):
+        """Preload total quantities for a list of inventory items to avoid N+1 queries."""
+        if not items:
+            return items
+            
+        item_ids = [item.id for item in items]
+        total_quantities = dict(
+            db.session.query(
+                ItemLocation.item_id,
+                db.func.sum(ItemLocation.quantity)
+            )
+            .filter(ItemLocation.item_id.in_(item_ids))
+            .group_by(ItemLocation.item_id)
+            .all()
+        )
+        
+        for item in items:
+            item.total_quantity_cached = total_quantities.get(item.id, 0)
+            
+        return items
+
+    @classmethod
+    def get_paginated_with_total_quantity(cls, page, per_page=None, search_query=None):
+        """Get paginated inventory items with total quantity efficiently."""
+        from utils import get_inventory_query_with_search
+        
+        # Use the centralized default if per_page is not specified
+        if per_page is None:
+            per_page = PAGINATION_SETTINGS['DEFAULT_PER_PAGE']
+        
+        query = get_inventory_query_with_search(search_query)
+        
+        # Subquery to calculate total quantities efficiently
+        total_quantity_subq = (
+            db.session.query(
+                ItemLocation.item_id,
+                db.func.sum(ItemLocation.quantity).label('total_qty')
+            )
+            .group_by(ItemLocation.item_id)
+            .subquery()
+        )
+        
+        # Join with the subquery to get total quantity efficiently
+        query = query.outerjoin(
+            total_quantity_subq,
+            cls.id == total_quantity_subq.c.item_id
+        ).add_columns(total_quantity_subq.c.total_qty)
+        
+        # Paginate the results
+        items_with_totals = query.paginate(
+            page=page, 
+            per_page=per_page, 
+            error_out=False
+        )
+        
+        # Transform to include total_quantity in the item objects
+        items = []
+        for item, total_qty in items_with_totals.items:
+            item.total_quantity_cached = total_qty or 0
+            items.append(item)
+        
+        return type('PaginatedResult', (), {
+            'items': items,
+            'page': items_with_totals.page,
+            'pages': items_with_totals.pages,
+            'total': items_with_totals.total,
+            'has_next': items_with_totals.has_next,
+            'has_prev': items_with_totals.has_prev
+        })()
 
 class ItemLocation(db.Model):
     """Represents the association between inventory items and locations, including quantity."""

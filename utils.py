@@ -141,10 +141,23 @@ def generate_inventory_csv():
     writer.writerow(['Item ID', 'Name', 'Description', 'Category', 'Condition', 
                      'Date Acquired', 'Price Per Item', 'Location', 'Quantity'])
     
-    # Get all items with positive stock
-    items = Inventory.query.options(
+    # Get all items with positive stock - using subqueries to avoid N+1
+    items_with_stock_subq = (
+        db.session.query(ItemLocation.item_id)
+        .filter(ItemLocation.quantity > 0)
+        .distinct()
+        .subquery()
+    )
+    
+    items = Inventory.query.join(
+        items_with_stock_subq,
+        Inventory.id == items_with_stock_subq.c.item_id
+    ).options(
         db.joinedload(Inventory.locations).joinedload(ItemLocation.location)
-    ).filter(Inventory.locations.any(ItemLocation.quantity > 0)).order_by(Inventory.name).all()
+    ).order_by(Inventory.name).all()
+    
+    # Preload total quantities to avoid N+1 issues during processing
+    Inventory.preload_total_quantities(items)
     
     for item in items:
         for item_loc in item.locations:
@@ -248,3 +261,24 @@ def generate_disposals_template():
     writer.writerow(['Name', 'Location', 'Quantity', 'DisposalDate', 'Reason'])
     writer.writerow(['Damaged Chair', 'Sanctuary', 1, '2025-05-01', 'Broken legs'])
     return output.getvalue()
+
+
+def get_inventory_query_with_search(search_query=None):
+    """
+    Creates a base query for inventory items with optional search functionality.
+    This function reduces code duplication between routes that need similar query logic.
+    """
+    query = Inventory.query
+    
+    if search_query:
+        search_term = f'%{search_query}%'
+        query = query.filter(
+            db.or_(
+                Inventory.name.ilike(search_term),
+                Inventory.description.ilike(search_term),
+                Inventory.category.ilike(search_term),
+                Inventory.condition.ilike(search_term)
+            )
+        )
+    
+    return query.order_by(Inventory.name)

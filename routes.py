@@ -20,8 +20,9 @@ from utils import (
     get_or_create_location, process_inventory_row, process_movement_row,
     process_disposed_item_row, generate_inventory_csv, generate_movements_csv,
     generate_disposals_csv, generate_inventory_template, generate_movements_template,
-    generate_disposals_template
+    generate_disposals_template, get_inventory_query_with_search
 )
+from config import PAGINATION_SETTINGS
 from app import app, login_manager
 
 # ---------- AUTHENTICATION ROUTES ---------- #
@@ -171,11 +172,75 @@ def change_password():
 @login_required
 def index():
     """Displays the main inventory list (items with stock > 0)."""
-    inventory_items = Inventory.query.options(
-        db.joinedload(Inventory.locations).joinedload(ItemLocation.location)
-    ).filter(Inventory.locations.any(ItemLocation.quantity > 0)).order_by(Inventory.name).all()
-
-    return render_template('index.html', inventory=inventory_items)
+    page = request.args.get('page', 1, type=int)
+    search_query = request.args.get('q', '').strip()
+    
+    # Subquery to efficiently find items with stock > 0
+    items_with_stock_subq = (
+        db.session.query(ItemLocation.item_id)
+        .filter(ItemLocation.quantity > 0)
+        .distinct()
+        .subquery()
+    )
+    
+    # Main query with pagination
+    query = Inventory.query.join(
+        items_with_stock_subq,
+        Inventory.id == items_with_stock_subq.c.item_id
+    )
+    
+    if search_query:
+        search_term = f'%{search_query}%'
+        query = query.filter(
+            db.or_(
+                Inventory.name.ilike(search_term),
+                Inventory.description.ilike(search_term)
+            )
+        )
+    
+    # Subquery to calculate total quantities efficiently
+    total_quantity_subq = (
+        db.session.query(
+            ItemLocation.item_id,
+            db.func.sum(ItemLocation.quantity).label('total_qty')
+        )
+        .group_by(ItemLocation.item_id)
+        .subquery()
+    )
+    
+    # Join with the subquery to get total quantity efficiently
+    query = query.outerjoin(
+        total_quantity_subq,
+        Inventory.id == total_quantity_subq.c.item_id
+    ).add_columns(total_quantity_subq.c.total_qty)
+    
+    # Paginate the results
+    inventory_paginated = query.order_by(Inventory.name).paginate(
+        page=page,
+        per_page=PAGINATION_SETTINGS['INVENTORY_PER_PAGE'],
+        error_out=False
+    )
+    
+    # Transform to include total_quantity in the item objects
+    inventory_items = []
+    for item, total_qty in inventory_paginated.items:
+        item.total_quantity_cached = total_qty or 0
+        inventory_items.append(item)
+    
+    # Create a paginated result object similar to the one we defined in the model
+    paginated_result = type('PaginatedResult', (), {
+        'items': inventory_items,
+        'page': inventory_paginated.page,
+        'pages': inventory_paginated.pages,
+        'total': inventory_paginated.total,
+        'has_next': inventory_paginated.has_next,
+        'has_prev': inventory_paginated.has_prev
+    })()
+    
+    return render_template('index.html', 
+                          inventory=paginated_result.items,
+                          pagination=paginated_result,
+                          search_query=search_query)
 
 @app.route('/add_item', methods=['GET', 'POST'])
 @login_required
@@ -277,26 +342,19 @@ def edit_items():
         flash('Access denied. Admin privileges required.', 'danger')
         return redirect(url_for('index'))
     
-    # Rest of the function remains the same
+    page = request.args.get('page', 1, type=int)
     search_query = request.args.get('q', '').strip()
     
-    query = Inventory.query.options(
-        db.joinedload(Inventory.locations).joinedload(ItemLocation.location)
-    ).order_by(Inventory.name)
-    
-    if search_query:
-        search_term = f'%{search_query}%'
-        query = query.filter(
-            db.or_(
-                Inventory.name.ilike(search_term),
-                Inventory.description.ilike(search_term),
-                Inventory.category.ilike(search_term),
-                Inventory.condition.ilike(search_term)
-            )
-        )
+    # Use the new method for paginated results with total quantity calculation
+    paginated_result = Inventory.get_paginated_with_total_quantity(
+        page=page,
+        per_page=PAGINATION_SETTINGS['EDIT_ITEMS_PER_PAGE'],
+        search_query=search_query
+    )
     
     return render_template('edit_items.html',
-                         inventory=query.all(),
+                         inventory=paginated_result.items,
+                         pagination=paginated_result,
                          search_query=search_query,
                          active_page='edit_items')
                          
@@ -430,30 +488,23 @@ def delete_items():
         flash('Access denied. Admin privileges required.', 'danger')
         return redirect(url_for('index'))
     
-    # Rest of the function remains the same
+    page = request.args.get('page', 1, type=int)
     search_query = request.args.get('q', '').strip()
     
-    query = Inventory.query.options(
-        db.joinedload(Inventory.locations).joinedload(ItemLocation.location)
-    ).order_by(Inventory.name)
-    
-    if search_query:
-        search_term = f'%{search_query}%'
-        query = query.filter(
-            db.or_(
-                Inventory.name.ilike(search_term),
-                Inventory.description.ilike(search_term),
-                Inventory.category.ilike(search_term),
-                Inventory.condition.ilike(search_term)
-            )
-        )
+    # Use the new method for paginated results with total quantity calculation
+    paginated_result = Inventory.get_paginated_with_total_quantity(
+        page=page,
+        per_page=PAGINATION_SETTINGS['DELETE_ITEMS_PER_PAGE'],
+        search_query=search_query
+    )
     
     categories = [c[0] for c in db.session.query(Inventory.category.distinct()).all() if c[0]]
     conditions = [c[0] for c in db.session.query(Inventory.condition.distinct()).all() if c[0]]
     locations = [l.name for l in Location.query.order_by(Location.name).all()]
 
     return render_template('delete_items.html',
-                         inventory=query.all(),
+                         inventory=paginated_result.items,
+                         pagination=paginated_result,
                          search_query=search_query,
                          categories=categories,
                          conditions=conditions,
@@ -498,7 +549,13 @@ def delete_item(item_id):
 @login_required
 def dispose_item(item_id):
     """Records the disposal of a certain quantity of an item from a location."""
-    item = Inventory.query.get_or_404(item_id)
+    item = Inventory.query.options(
+        db.joinedload(Inventory.locations).joinedload(ItemLocation.location)
+    ).get_or_404(item_id)
+    
+    # Cache the total quantity to avoid N+1 issues in templates
+    item.total_quantity_cached = item.total_quantity
+    
     locations_data = db.session.query(Location, ItemLocation.quantity).join(ItemLocation, Location.id == ItemLocation.location_id).filter(ItemLocation.item_id == item.id, ItemLocation.quantity > 0).order_by(Location.name).all()
 
     if request.method == 'POST':
@@ -550,6 +607,9 @@ def transfer():
         ).filter(Inventory.locations.any(ItemLocation.quantity > 0)
         ).order_by(Inventory.name).all()
     
+    # Preload total quantities to avoid N+1 issues when rendering templates
+    items = Inventory.preload_total_quantities(items)
+    
     all_locations = Location.query.order_by(Location.name).all()
     
     if request.method == 'POST':
@@ -562,12 +622,10 @@ def transfer():
             responsible = request.form.get('responsible', current_user.username).strip()
             
             if not all([item_id, from_location_id, to_location_name, quantity]):
-                flash("All fields are required", "danger")
-                return redirect(url_for('transfer'))
+                raise ValueError("All fields are required")
             
             if quantity <= 0:
-                flash("Quantity must be positive", "danger")
-                return redirect(url_for('transfer'))
+                raise ValueError("Quantity must be positive")
 
             # Find source stock
             source = ItemLocation.query.filter_by(
@@ -576,16 +634,14 @@ def transfer():
             ).first()
             
             if not source or source.quantity < quantity:
-                flash("Insufficient stock in source location", "danger")
-                return redirect(url_for('transfer'))
+                raise ValueError("Insufficient stock in source location")
 
             # Get or create destination location
             to_location = get_or_create_location(to_location_name)
             
             # Check if source and destination are the same
             if from_location_id == to_location.id:
-                flash("Source and destination locations must be different", "danger")
-                return redirect(url_for('transfer'))
+                raise ValueError("Source and destination locations must be different")
 
             # Find/Create destination stock
             destination = ItemLocation.query.filter_by(
@@ -620,13 +676,14 @@ def transfer():
             flash("Transfer completed successfully", "success")
             return redirect(url_for('movements'))
 
-        except ValueError:
-            flash("Invalid input values", "danger")
+        except ValueError as e:
+            db.session.rollback()
+            flash(str(e), "danger")
             return redirect(url_for('transfer'))
         except Exception as e:
             db.session.rollback()
-            current_app.logger.error(f"Transfer error: {str(e)}", exc_info=True)
             flash("An error occurred during transfer", "danger")
+            current_app.logger.error(f"Transfer error: {str(e)}", exc_info=True)
             return redirect(url_for('transfer'))
 
     # GET request handling
@@ -759,11 +816,13 @@ def download_template():
 @login_required
 def disposed_inventory():
     """Displays a searchable list of disposed items."""
+    page = request.args.get('page', 1, type=int)
     search_query = request.args.get('q', '').strip()
     query = DisposedItem.query.options(
         db.joinedload(DisposedItem.item),
         db.joinedload(DisposedItem.location)
-    )
+    ).order_by(DisposedItem.disposed_date.desc())
+    
     if search_query:
         search_term = f'%{search_query}%'
         query = query.join(Inventory).join(Location).filter(
@@ -773,8 +832,17 @@ def disposed_inventory():
                 DisposedItem.reason.ilike(search_term)
             )
         )
-    disposed_items = query.order_by(DisposedItem.disposed_date.desc()).all()
-    return render_template('disposed.html', disposed_items=disposed_items, search_query=search_query)
+    
+    disposed_paginated = query.paginate(
+        page=page,
+        per_page=PAGINATION_SETTINGS['DISPOSALS_PER_PAGE'],
+        error_out=False
+    )
+    
+    return render_template('disposed.html', 
+                          disposed_items=disposed_paginated.items, 
+                          pagination=disposed_paginated,
+                          search_query=search_query)
 
 @app.route('/search')
 @login_required
@@ -783,24 +851,79 @@ def search():
     query_str = request.args.get('q', '').strip()
     if not query_str:
         return redirect(url_for('index'))
+    
+    page = request.args.get('page', 1, type=int)
 
+    # Subquery to efficiently find items with stock > 0
+    items_with_stock_subq = (
+        db.session.query(ItemLocation.item_id)
+        .filter(ItemLocation.quantity > 0)
+        .distinct()
+        .subquery()
+    )
+    
+    # Main query with pagination
+    query = Inventory.query.join(
+        items_with_stock_subq,
+        Inventory.id == items_with_stock_subq.c.item_id
+    )
+    
     search_term = f'%{query_str}%'
-    results = Inventory.query.options(
-        db.joinedload(Inventory.locations).joinedload(ItemLocation.location)
-    ).filter(
-        Inventory.locations.any(ItemLocation.quantity > 0)
-    ).filter(
+    query = query.filter(
         db.or_(
             Inventory.name.ilike(search_term),
             Inventory.description.ilike(search_term)
         )
-    ).order_by(Inventory.name).all()
-    return render_template('index.html', inventory=results, search_query=query_str)
+    ).order_by(Inventory.name)
+    
+    # Subquery to calculate total quantities efficiently
+    total_quantity_subq = (
+        db.session.query(
+            ItemLocation.item_id,
+            db.func.sum(ItemLocation.quantity).label('total_qty')
+        )
+        .group_by(ItemLocation.item_id)
+        .subquery()
+    )
+    
+    # Join with the subquery to get total quantity efficiently
+    query = query.outerjoin(
+        total_quantity_subq,
+        Inventory.id == total_quantity_subq.c.item_id
+    ).add_columns(total_quantity_subq.c.total_qty)
+    
+    inventory_paginated = query.paginate(
+        page=page,
+        per_page=PAGINATION_SETTINGS['INVENTORY_PER_PAGE'],
+        error_out=False
+    )
+    
+    # Transform to include total_quantity in the item objects
+    inventory_items = []
+    for item, total_qty in inventory_paginated.items:
+        item.total_quantity_cached = total_qty or 0
+        inventory_items.append(item)
+    
+    # Create a paginated result object similar to the one we defined in the model
+    paginated_result = type('PaginatedResult', (), {
+        'items': inventory_items,
+        'page': inventory_paginated.page,
+        'pages': inventory_paginated.pages,
+        'total': inventory_paginated.total,
+        'has_next': inventory_paginated.has_next,
+        'has_prev': inventory_paginated.has_prev
+    })()
+    
+    return render_template('index.html', 
+                          inventory=paginated_result.items,
+                          pagination=paginated_result,
+                          search_query=query_str)
 
 @app.route('/movements')
 @login_required
 def movements():
     """Displays movement history with search functionality."""
+    page = request.args.get('page', 1, type=int)
     search_query = request.args.get('q', '').strip()
     
     # Base query
@@ -808,7 +931,7 @@ def movements():
         db.joinedload(Movement.item),
         db.joinedload(Movement.from_location),
         db.joinedload(Movement.to_location)
-    )
+    ).order_by(Movement.movement_date.desc())
     
     if search_query:
         search_term = f'%{search_query}%'
@@ -823,10 +946,15 @@ def movements():
             )
         )
 
-    movements_log = query.order_by(Movement.movement_date.desc()).all()
+    movements_paginated = query.paginate(
+        page=page,
+        per_page=PAGINATION_SETTINGS['MOVEMENTS_PER_PAGE'],
+        error_out=False
+    )
     
     return render_template('movements.html', 
-                         movements=movements_log, 
+                         movements=movements_paginated.items,
+                         pagination=movements_paginated,
                          search_query=search_query)
 
 @app.route('/item/<int:item_id>')
@@ -836,6 +964,10 @@ def item_detail(item_id):
     item = Inventory.query.options(
         db.joinedload(Inventory.locations).joinedload(ItemLocation.location)
     ).get_or_404(item_id)
+    
+    # Preload the total quantity to avoid N+1 issues in templates
+    item.total_quantity_cached = item.total_quantity  # This will calculate it once and cache it
+    
     return render_template('item_detail.html', item=item)
 
 @app.route('/location/<int:location_id>')
@@ -843,5 +975,21 @@ def item_detail(item_id):
 def location_detail(location_id):
     """Displays details for a specific location."""
     location = Location.query.get_or_404(location_id)
-    items_at_location = ItemLocation.query.filter_by(location_id=location_id).all()
+    items_at_location = ItemLocation.query.options(
+        db.joinedload(ItemLocation.item)
+    ).filter_by(location_id=location_id).all()
+    
+    # Preload total quantities for items to avoid N+1 issues
+    item_ids = [il.item_id for il in items_at_location]
+    items = Inventory.query.filter(Inventory.id.in_(item_ids)).all()
+    Inventory.preload_total_quantities(items)
+    
+    # Create a mapping for quick lookup
+    item_map = {item.id: item for item in items}
+    
+    # Update items in items_at_location with cached total quantities
+    for item_loc in items_at_location:
+        if item_loc.item_id in item_map:
+            item_loc.item.total_quantity_cached = item_map[item_loc.item_id].total_quantity_cached
+    
     return render_template('location_detail.html', location=location, items=items_at_location)

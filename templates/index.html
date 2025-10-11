@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-
 {% block content %}
 <div class="container py-4">
     <div class="card shadow-sm main-content-card">
@@ -24,7 +23,6 @@
                         </form>
                     </div>
                 </div>
-
                 <div class="d-none d-md-flex flex-column flex-md-row gap-2 justify-content-end">
                     <div class="d-flex gap-2 flex-wrap flex-md-nowrap">
                         <button type="button" class="btn theme-control-btn" data-bs-toggle="modal" data-bs-target="#importModal">
@@ -37,7 +35,6 @@
                             <i class="bi bi-file-earmark-arrow-down"></i> Template
                         </a>
                     </div>
-
                     <div class="search-container flex-shrink-0">
                         <form class="d-flex align-items-center" action="{{ url_for('search') }}" method="GET">
                             <div class="input-group">
@@ -49,7 +46,6 @@
                 </div>
             </div>
         </div>
-
         <div class="card-body p-0 stable-scroll-area">
             <div class="stable-table-container">
                 <table class="table table-hover align-middle mb-0 table-header-lock">
@@ -115,8 +111,8 @@
                                 {% endif %}
                             </td>
                             <td>₱{{ "%.2f"|format(item.price_per_item or 0) }}</td>
-                            <td class="text-end">{{ item.total_quantity }}</td>
-                            <td class="text-end">₱{{ "%.2f"|format((item.total_quantity|float * (item.price_per_item or 0))) }}</td>
+                            <td class="text-end">{{ item.total_quantity_cached }}</td>
+                            <td class="text-end">₱{{ "%.2f"|format((item.total_quantity_cached|float * (item.price_per_item or 0))) }}</td>
                         </tr>
                         {% else %}
                         <tr>
@@ -128,38 +124,70 @@
                     </tbody>
                 </table>
             </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="importModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-upload me-2"></i> Import CSV</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <!-- Pagination -->
+            {% if pagination and pagination.pages > 1 %}
+            <div class="card-footer bg-white border-top-0">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if pagination.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('index', page=pagination.page-1, q=search_query) if request.endpoint == 'index' else url_for('search', page=pagination.page-1, q=search_query) }}">Previous</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">Previous</span>
+                            </li>
+                        {% endif %}
+                        {% for page_num in range(pagination.page - 2 if pagination.page > 2 else 1, 
+                                                pagination.page + 3 if pagination.page + 2 < pagination.pages else pagination.pages + 1) %}
+                            {% if page_num > 0 and page_num <= pagination.pages %}
+                                <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                                    <a class="page-link" href="{{ url_for('index', page=page_num, q=search_query) if request.endpoint == 'index' else url_for('search', page=page_num, q=search_query) }}">{{ page_num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        {% if pagination.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('index', page=pagination.page+1, q=search_query) if request.endpoint == 'index' else url_for('search', page=pagination.page+1, q=search_query) }}">Next</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">Next</span>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
             </div>
-            <form method="POST" action="{{ url_for('import_csv') }}" enctype="multipart/form-data">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="context" value="current_inventory">
-                
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">CSV File</label>
-                        <input type="file" class="form-control" name="csv_file" accept=".csv" required>
-                        <small class="form-text text-muted">Use provided template format</small>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Import</button>
-                </div>
-            </form>
+            {% endif %}
         </div>
     </div>
-	</div>
+    <div class="modal fade" id="importModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-upload me-2"></i> Import CSV</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="{{ url_for('import_csv') }}" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="context" value="current_inventory">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">CSV File</label>
+                            <input type="file" class="form-control" name="csv_file" accept=".csv" required>
+                            <small class="form-text text-muted">Use provided template format</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Import</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
-
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
 {% endblock %}
