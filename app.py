@@ -10,33 +10,29 @@ from flask_migrate import Migrate
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
 from forms import ChangePasswordForm
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 # --- App Configuration ---
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-insecure-fallback-key')
-db_url = os.environ.get('DATABASE_URL', 'sqlite:///inventory.db')
+
+# Get DATABASE_URL from environment, with MySQL fallback for development
+db_url = os.environ.get('DATABASE_URL', 'mysql+pymysql://mysql_username:YourSuperSecretDBPassword@localhost/inventory_management_db')
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Enhanced database connection pooling for PythonAnywhere free tier
-if db_url.startswith("sqlite"):
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        'connect_args': {'check_same_thread': False},
-        'pool_size': 5,           # PythonAnywhere free tier limit
-        'pool_recycle': 280,      # Just under their 5-minute timeout
-        'pool_pre_ping': True,
-        'pool_timeout': 10,       # Wait up to 10 seconds for connection
-        'max_overflow': 2         # Additional connections when pool exhausted
-    }
-else:
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        'pool_size': 5,           # PythonAnywhere free tier limit
-        'pool_recycle': 280,      # Just under their 5-minute timeout
-        'pool_pre_ping': True,
-        'pool_timeout': 10,       # Wait up to 10 seconds for connection
-        'max_overflow': 2         # Additional connections when pool exhausted
-    }
+# Enhanced database connection pooling
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_size': 5,           # Connection pool size
+    'pool_recycle': 280,      # Recycle connections after 280 seconds
+    'pool_pre_ping': True,    # Ping connections before use
+    'pool_timeout': 10,       # Wait up to 10 seconds for a connection
+    'max_overflow': 2         # Allow 2 extra connections during peak loads
+}
 
 # Initialize db
 db.init_app(app)

@@ -524,16 +524,10 @@ def delete_item(item_id):
             return redirect(url_for('delete_item', item_id=item_id))
             
         try:
-            # Delete related records first to avoid foreign key constraint issues
-            # This is needed because SQLite doesn't support ON DELETE CASCADE properly
-            DisposedItem.query.filter_by(item_id=item.id).delete(synchronize_session=False)
-            Movement.query.filter_by(item_id=item.id).delete(synchronize_session=False)
-            ItemLocation.query.filter_by(item_id=item.id).delete(synchronize_session=False)
-            
-            # Now delete the item
+            # The database's ON DELETE CASCADE will handle related records.
             db.session.delete(item)
             db.session.commit()
-            flash(f'Item "{item.name}" deleted successfully!', 'success')
+            flash(f'Item "{item.name}" and all its related records have been deleted.', 'success')
             return redirect(url_for('delete_items'))
             
         except Exception as e:
