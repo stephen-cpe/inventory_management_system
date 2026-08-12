@@ -73,8 +73,11 @@ Render deploys from a Git repository. If your code is not yet on GitHub:
    | `LOG_LEVEL` | `INFO` |
    | `LOG_TO_STDOUT` | `1` (forces logs to stdout so Render's log drain captures them; the app also auto-detects read-only filesystems) |
    | `FLASK_DEBUG` | `False` |
+   | `AUTO_CREATE_ADMIN` | `1` (enables auto-creation of a default admin user on first boot — see step 4) |
+   | `ADMIN_USERNAME` | `admin` (or your preferred username) |
+   | `ADMIN_PASSWORD` | A strong password of your choice (e.g. `MyStr0ngP@ssw0rd!`). If omitted, an insecure built-in default is used — always set this. |
 
-5. Click **Create Web Service**.
+5. Click **Deploy Web Service**.
 
 Render will now build the app (install dependencies from `requirements.txt`) and start gunicorn. The `wsgi.py` entry point automatically creates the database tables on import via `db.create_all()` (idempotent — it skips tables that already exist), so no separate pre-deploy command is needed. This replaces the `init_db.sql` step used in the MySQL guides.
 
@@ -86,20 +89,17 @@ Watch the **Logs** tab to confirm gunicorn starts listening (you should see the 
 
 ## 4. Create the Admin User
 
-Because Render's free web service has no SSH access, you'll create the admin user via the **Shell** tab in the Render dashboard.
+Render's free tier offers **no Shell access and no Pre-Deploy Command** (both are paid features), so `flask create-admin` cannot be run interactively. Instead, the app supports **auto-creation of a default admin user on first boot** via the environment variables you set in step 3 (`AUTO_CREATE_ADMIN`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`).
 
-1. In your web service page, click the **Shell** tab. The Shell tab is available on free web services while they're running (if the service is spun down, trigger a manual deploy or visit the URL to wake it first).
-2. In the shell, run:
-   ```bash
-   flask create-admin
-   ```
-   You'll be prompted for a username and password.
+On process startup, `wsgi.py` checks whether the admin user already exists. If not, it creates one with those credentials and logs: `Auto-created default admin user 'admin'. CHANGE THE DEFAULT PASSWORD IMMEDIATELY...`
 
-> **Alternative if Shell is unavailable:** set `ADMIN_USERNAME` and `ADMIN_PASSWORD` environment variables, then temporarily change the **Start Command** to a one-shot Python snippet that creates the admin, deploy once, then revert the Start Command:
-> ```
-> python -c "from app import create_app; from extensions import db; from models import User; import os; app=create_app(); app.app_context().__enter__(); db.create_all(); u=User(username=os.environ['ADMIN_USERNAME'], is_admin=True); u.set_password(os.environ['ADMIN_PASSWORD']); db.session.add(u); db.session.commit(); print('Admin created')"
-> ```
-> After it succeeds, revert the Start Command to the gunicorn line and remove the `ADMIN_*` environment variables.
+**After your first successful login:**
+1. Go to the user menu → **Change Password** and set a new one.
+2. Remove `ADMIN_PASSWORD` and `AUTO_CREATE_ADMIN` from the Render environment variables (good hygiene — the logic is idempotent and won't re-create an existing user, but the password shouldn't sit in plaintext config long-term).
+
+> **If you didn't set `ADMIN_PASSWORD` in step 3:** an insecure built-in default (`Ch@ng3meA$@P`) is used. **Always set a custom `ADMIN_PASSWORD`** for any deployment that's publicly accessible, and change it immediately after first login.
+
+> **How it works:** The `wsgi.py` entry point runs `db.create_all()` and then, if `AUTO_CREATE_ADMIN` is set, checks for the admin user and creates it if missing. This all happens inside the normal web process, so no shell or pre-deploy command is needed.
 
 ---
 
@@ -110,8 +110,9 @@ Because Render's free web service has no SSH access, you'll create the admin use
    https://<your-service-name>.onrender.com
    ```
 2. The first load may take ~60 seconds while the free instance spins up.
-3. Log in with the admin credentials you created.
-4. Add a test item, transfer, and disposal to confirm the database connection works.
+3. Log in with the admin credentials you configured in step 4.
+4. **Immediately change the password** via the user menu → Change Password.
+5. Add a test item, transfer, and disposal to confirm the database connection works.
 
 ---
 

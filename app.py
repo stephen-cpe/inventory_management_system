@@ -45,9 +45,13 @@ def create_app(testing: bool = False) -> Flask:
         )
         app.config['SQLALCHEMY_DATABASE_URI'] = db_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    if not testing:
-        # MySQL connection pool tuning. These options are not valid for
-        # SQLite's default StaticPool/SingletonPool used in tests.
+
+    # MySQL/Postgres connection pool tuning. These options are not valid
+    # for SQLite's default StaticPool/SingletonPool, so skip them when the
+    # DB URL points at SQLite (either via testing mode or an explicit
+    # sqlite:// DATABASE_URL, e.g. local dev or wsgi.py test imports).
+    db_url_lower = app.config['SQLALCHEMY_DATABASE_URI'].lower()
+    if not testing and not db_url_lower.startswith('sqlite'):
         app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
             'pool_size': 5,
             'pool_recycle': 280,

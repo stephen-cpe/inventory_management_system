@@ -84,17 +84,29 @@ Watch the **Deployments** tab for the gunicorn startup message (you should see "
 
 ## 5. Create the Admin User
 
-Railway provides a web-based terminal for one-off commands.
+Railway provides a web-based terminal, but the simplest approach for the free tier is the **auto-create admin** feature (same as Render). Two options:
 
-1. In your web service page, click the **Settings** tab → **Data access** (or use the **CLI** tab if visible). Alternatively, click the three-dot menu on your service → **Start Terminal**.
+### Option A: Auto-create on first boot (recommended)
+
+Add these environment variables to your web service (same **Variables** tab as before):
+
+   | Key | Value |
+   |-----|-------|
+   | `AUTO_CREATE_ADMIN` | `1` |
+   | `ADMIN_USERNAME` | `admin` (or your preferred username) |
+   | `ADMIN_PASSWORD` | A strong password of your choice |
+
+On the next deploy, `wsgi.py` auto-creates the admin user on process startup. After your first login, change the password via the user menu → Change Password, then remove `ADMIN_PASSWORD` and `AUTO_CREATE_ADMIN` from the variables (good hygiene — the logic is idempotent but the password shouldn't sit in config long-term).
+
+### Option B: Use Railway's web terminal
+
+1. In your web service page, click the three-dot menu → **Start Terminal**.
 2. In the terminal, run:
    ```bash
    flask create-admin
    ```
    You'll be prompted for a username and password.
 3. After it succeeds, log in at your Railway domain.
-
-> If the terminal isn't available (free plan), set `ADMIN_USERNAME` and `ADMIN_PASSWORD` environment variables and run the pre-deploy one-time command variant described in the Render guide, then remove those variables.
 
 ---
 

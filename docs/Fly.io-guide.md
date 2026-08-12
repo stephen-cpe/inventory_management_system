@@ -166,7 +166,27 @@ fly logs
 
 ## 7. Create the Admin User
 
-Fly.io gives you direct shell access to running machines via `fly ssh`. After a successful deploy, run:
+Two options:
+
+### Option A: Auto-create on first boot (recommended)
+
+Set these secrets before deploying (simpler than SSH, and consistent with the Render/Railway guides):
+
+```bash
+fly secrets set AUTO_CREATE_ADMIN=1
+fly secrets set ADMIN_USERNAME=admin
+fly secrets set ADMIN_PASSWORD=MyStr0ngP@ssw0rd!
+```
+
+On the next deploy (or process restart), `wsgi.py` auto-creates the admin user on startup. After your first login, change the password via the user menu → Change Password, then remove the secrets:
+
+```bash
+fly secrets unset AUTO_CREATE_ADMIN ADMIN_PASSWORD
+```
+
+### Option B: Use fly ssh console
+
+Fly.io gives you direct shell access to running machines. After a successful deploy, run:
 
 ```bash
 fly ssh console
