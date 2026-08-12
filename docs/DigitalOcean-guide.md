@@ -1,5 +1,5 @@
 # DigitalOcean Deployment Guide with DuckDNS
-## For $12/month Ubuntu 24.04 LTS Droplet + DuckDNS + Let's Encrypt SSL
+## For $6/month Ubuntu 26.04 LTS Droplet + DuckDNS + Let's Encrypt SSL
 
 ## Disclaimer
 
@@ -21,8 +21,8 @@
 From DigitalOcean Dashboard:
 1. Click **Create → Droplet**
 2. Choose:
-   - **Ubuntu 24.04 LTS**
-   - **Basic Plan** → **Regular with SSD** → **$12/month** (Choose the droplet with 2 GB RAM)
+   - **Ubuntu 26.04 LTS**
+   - **Basic Plan** → **Regular with SSD** → **$6/month** (Choose the droplet with 1 GB RAM)
 3. **Choose a hostname**: `churchinventory` (this will help with SSL certs)
 4. **Authentication**: Password (create your own strong password)
 5. Click **Create Droplet**
@@ -44,8 +44,7 @@ From DigitalOcean Dashboard:
 ---
 
 ## 4. Connect to Droplet
-1. Once Droplet is created, just use **Access console**
-2. Then click **Launch Droplet Console**
+1. Once Droplet is created, use `ssh root@<droplet-ip>` and then enter droplet password.
 
 ---
 
@@ -57,15 +56,10 @@ sudo apt update && sudo apt upgrade -y
 # Set proper hostname (helps with SSL)
 sudo hostnamectl set-hostname churchinventory
 
-# Install Python 3.13
+# Install Python and other software tools
 sudo apt update
-sudo apt install -y software-properties-common
-sudo add-apt-repository ppa:deadsnakes/ppa -y
-sudo apt update
-sudo apt install -y python3.13 python3.13-venv python3.13-dev python3-pip python3-certbot-nginx
+sudo apt install -y python3 python3-venv python3-certbot-nginx curl git mysql-server libmysqlclient-dev build-essential pkg-config libssl-dev nginx certbot
 
-# Install other software and tools
-sudo apt install -y curl git mysql-server libmysqlclient-dev build-essential pkg-config libssl-dev nginx certbot
 
 ```
 
@@ -148,13 +142,12 @@ git clone https://github.com/stephen-cpe/inventory_management_system.git
 cd inventory_management_system
 
 # Create virtual environment
-python3.13 -m venv venv
+python3 -m venv venv
 source venv/bin/activate
 
 # Upgrade pip and install dependencies
 pip install --upgrade pip
 pip install -r requirements.txt
-pip install gunicorn mysqlclient
 ```
 
 ---

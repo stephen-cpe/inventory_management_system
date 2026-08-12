@@ -13,7 +13,7 @@ This guide assumes you're starting with a fresh AWS account using Free Tier elig
 From AWS Management Console:
 - Navigate to EC2 → Instances → Launch Instance
 - Name: `inventory-management-app`
-- Application and OS Images: **Amazon Linux 2023 6.12 (ARM)**
+- Application and OS Images: **Amazon Linux 2023 6.18 (ARM)**
 - Instance type: **t4g.micro** (Free Tier eligible, ARM-based)
 - Key pair: Create or select an existing key pair for SSH access
 - Network settings:
@@ -34,13 +34,13 @@ ssh -i "your-key.pem" ec2-user@your-ec2-public-ip
 sudo dnf update -y
 
 # Install MySQL Server
-sudo dnf install -y https://dev.mysql.com/get/mysql80-community-release-el9-1.noarch.rpm
+sudo dnf install -y https://dev.mysql.com/get/mysql80-community-release-el9-4.noarch.rpm
 sudo dnf install -y mysql-community-server --nogpgcheck
 sudo systemctl start mysqld
 sudo systemctl enable mysqld
 
 # Install Python and build tools
-sudo dnf install python3.13 python3.13-pip python3.13-devel mariadb105-devel mariadb105 git gcc openssl nginx -y
+sudo dnf install python3.13 python3.13-pip python3.13-devel mysql-community-devel git gcc openssl nginx -y
 
 
 # Retrieve the temporary password
@@ -81,13 +81,12 @@ git clone https://github.com/stephen-cpe/inventory_management_system.git
 cd inventory_management_system
 
 # Create and activate virtual environment
-python3.13 -m pip install --upgrade pip
 python3.13 -m venv venv
 source venv/bin/activate
+python3.13 -m pip install --upgrade pip
 
 # Install dependencies
 pip install -r requirements.txt
-pip install gunicorn
 ```
 
 ## 6. Initialize the Database Schema
@@ -252,7 +251,7 @@ This guide assumes you're starting with a fresh AWS account using Free Tier elig
 From AWS Management Console:
 - Navigate to EC2 → Instances → Launch Instance
 - Name: `inventory-management-app`
-- Application and OS Images: **Amazon Linux 2023 6.12 (ARM)**
+- Application and OS Images: **Amazon Linux 2023 6.18 (ARM)**
 - Instance type: **t4g.micro** (Free Tier eligible, ARM-based)
 - Key pair: Create or select an existing key pair for SSH access
 - Network settings:
@@ -264,15 +263,14 @@ From AWS Management Console:
 
 ## 2. Create RDS Database Instance
 From AWS Management Console:
-- Navigate to RDS → Databases → Create database
-- Choose database creation method: **Easy create**
+- Navigate to Aurora and RDS → Databases → Create database → Full configuration
 - Engine options: **MySQL**
+- Choose database creation method: **Express create**
 - Templates: **Free tier**
 - Settings:
   - DB instance identifier: `inventory-db`
   - Master username: `mysql_username`
   - Master password: `Y0uRsUp3rS3cR3tDBP4ssw0Rd!`
-- DB instance size: **db.t4g.micro** (Free Tier)
 - Set up EC2 connection - optional
    - Connect to an EC2 compute resource and select your EC2 instance
 - Click **Create database** (takes ~5-10 minutes)
@@ -324,13 +322,12 @@ git clone https://github.com/stephen-cpe/inventory_management_system.git
 cd inventory_management_system
 
 # Create and activate virtual environment
-python3.13 -m pip install --upgrade pip
 python3.13 -m venv venv
 source venv/bin/activate
+python3.13 -m pip install --upgrade pip
 
 # Install dependencies
 pip install -r requirements.txt
-pip install gunicorn
 ```
 
 ## 9. Initialize the Database Schema

@@ -66,12 +66,12 @@ Railway deploys from a Git repository. If your code is not yet on GitHub:
    | `FLASK_DEBUG` | `False` |
 
 3. Go to the **Settings** tab of the web service:
-   * **Build Command:** Railway's Nixpacks builder auto-detects Python and runs `pip install -r requirements.txt` automatically — leave blank unless you want to override.
+   * **Build Command:** Railway's Railpack builder auto-detects Python and runs `pip install -r requirements.txt` automatically — leave blank unless you want to override.
    * **Start Command:** `gunicorn wsgi:app --workers 1 --threads 2 --timeout 60`
      * The repo's `Procfile` already contains this; Railway can use it but explicitly setting the Start Command is more reliable.
-   * Under **Custom Domains**, generate a Railway domain (e.g. `church-inventory.up.railway.app`).
+   * Just use **Generate Domain** and choose Port 80.
 
-4. Save the settings. Railway will trigger a new deployment. The `wsgi.py` entry point automatically creates the database tables on import via `db.create_all()` (idempotent — it skips tables that already exist), so no separate pre-deploy command is needed. This replaces the `init_db.sql` step used in the MySQL guides.
+4. Click **Deploy** to apply changes. Railway will trigger a new deployment. The `wsgi.py` entry point automatically creates the database tables on import via `db.create_all()` (idempotent — it skips tables that already exist), so no separate pre-deploy command is needed. This replaces the `init_db.sql` step used in the MySQL guides.
 
 > **Note:** Railway does support a **Pre-Deploy Command** field, but it's optional here. The `wsgi.py` approach works uniformly across Render, Railway, and Fly.io without platform-specific pre-deploy configuration. If you prefer to keep table creation out of the web process, you can alternatively set the Pre-Deploy Command to:
 > ```

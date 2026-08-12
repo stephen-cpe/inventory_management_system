@@ -64,7 +64,7 @@ Render deploys from a Git repository. If your code is not yet on GitHub:
    * **Start Command:** `gunicorn wsgi:app --workers 1 --threads 2 --timeout 60`
      * (The repo's `Procfile` already contains this command; Render auto-detects the Procfile, so you can leave the Start Command blank and Render will use the `web` line.)
    * **Instance Type:** **Free** (512 MB RAM / 0.1 CPU).
-4. Click **Advanced** and add the following **Environment Variables**:
+4. Add the following **Environment Variables**:
 
    | Key | Value |
    |-----|-------|
