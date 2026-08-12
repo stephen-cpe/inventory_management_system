@@ -61,7 +61,7 @@ Render deploys from a Git repository. If your code is not yet on GitHub:
    * **Region:** must match your Postgres region (so they can talk over the private network).
    * **Runtime:** **Python 3** (Render will detect the latest stable version).
    * **Build Command:** `pip install -r requirements.txt`
-   * **Start Command:** `gunicorn "app:create_app()" --workers 1 --threads 2 --timeout 60`
+   * **Start Command:** `gunicorn wsgi:app --workers 1 --threads 2 --timeout 60`
      * (The repo's `Procfile` already contains this command; Render auto-detects the Procfile, so you can leave the Start Command blank and Render will use the `web` line.)
    * **Instance Type:** **Free** (512 MB RAM / 0.1 CPU).
 4. Click **Advanced** and add the following **Environment Variables**:
@@ -74,43 +74,32 @@ Render deploys from a Git repository. If your code is not yet on GitHub:
    | `LOG_TO_STDOUT` | `1` (forces logs to stdout so Render's log drain captures them; the app also auto-detects read-only filesystems) |
    | `FLASK_DEBUG` | `False` |
 
-5. Scroll to the **Pre-Deploy Command** field and enter:
-   ```
-   python -c "from app import create_app; from extensions import db; app=create_app(); app.app_context().__enter__(); db.create_all(); print('Tables OK')"
-   ```
-   This runs before each deploy and creates the database tables via SQLAlchemy (`db.create_all()` is idempotent — it skips tables that already exist). This replaces the `init_db.sql` step used in the MySQL guides.
+5. Click **Create Web Service**.
 
-6. Click **Create Web Service**.
+Render will now build the app (install dependencies from `requirements.txt`) and start gunicorn. The `wsgi.py` entry point automatically creates the database tables on import via `db.create_all()` (idempotent — it skips tables that already exist), so no separate pre-deploy command is needed. This replaces the `init_db.sql` step used in the MySQL guides.
 
-Render will now build the app (install dependencies from `requirements.txt`) and run the pre-deploy command to create tables, then start gunicorn. Watch the **Logs** tab to confirm "Tables OK" appears and gunicorn starts listening.
+> **Note:** Render's **Pre-Deploy Command** field is a paid-feature only. The free-tier workflow uses `wsgi.py` (which runs table creation as part of the normal process startup) instead, so you don't need the Pre-Deploy Command.
+
+Watch the **Logs** tab to confirm gunicorn starts listening (you should see the app's startup log lines including "Inventory App Starting Up..." and "Database URI: ...").
 
 ---
 
 ## 4. Create the Admin User
 
-Because Render's free web service has no SSH access, you'll create the admin user via a **one-off shell command** from the Render dashboard.
+Because Render's free web service has no SSH access, you'll create the admin user via the **Shell** tab in the Render dashboard.
 
-1. In your web service page, click the **Shell** tab (note: Shell is available on free web services while they're running, but not while spun down).
-2. If Shell is unavailable, alternatively add a temporary one-off **Background Worker** — but the simplest approach is to use the **Pre-Deploy Command** once:
-
-   **Easiest method — set admin via environment variables and a one-time pre-deploy:**
-
-   1. Add two more environment variables (you can remove them afterward):
-      * `ADMIN_USERNAME` = `admin`
-      * `ADMIN_PASSWORD` = a strong password of your choice
-   2. Temporarily change the **Pre-Deploy Command** to:
-      ```
-      python -c "from app import create_app; from extensions import db; from models import User; app=create_app(); ctx=app.app_context(); ctx.__enter__(); db.create_all(); import os; from models import User; u=User.query.filter_by(username=os.environ['ADMIN_USERNAME']).first(); print('admin exists' if u else 'creating'); u and None; (u or User(username=os.environ['ADMIN_USERNAME'], is_admin=True)); None"
-      ```
-      This is getting convoluted — **the cleaner approach is the Shell tab**:
-
-3. **Recommended — use the Shell tab** (if available) and run:
+1. In your web service page, click the **Shell** tab. The Shell tab is available on free web services while they're running (if the service is spun down, trigger a manual deploy or visit the URL to wake it first).
+2. In the shell, run:
    ```bash
    flask create-admin
    ```
-   You'll be prompted for a username and password. If the Shell tab isn't visible (it appears once the service is running), trigger a manual deploy to wake it up first.
+   You'll be prompted for a username and password.
 
-4. After creating the admin, **remove `ADMIN_USERNAME` and `ADMIN_PASSWORD`** from the environment variables if you added them (so the password isn't sitting in plaintext config long-term).
+> **Alternative if Shell is unavailable:** set `ADMIN_USERNAME` and `ADMIN_PASSWORD` environment variables, then temporarily change the **Start Command** to a one-shot Python snippet that creates the admin, deploy once, then revert the Start Command:
+> ```
+> python -c "from app import create_app; from extensions import db; from models import User; import os; app=create_app(); app.app_context().__enter__(); db.create_all(); u=User(username=os.environ['ADMIN_USERNAME'], is_admin=True); u.set_password(os.environ['ADMIN_PASSWORD']); db.session.add(u); db.session.commit(); print('Admin created')"
+> ```
+> After it succeeds, revert the Start Command to the gunicorn line and remove the `ADMIN_*` environment variables.
 
 ---
 
@@ -141,7 +130,7 @@ Because Render's free web service has no SSH access, you'll create the admin use
 | Symptom | Likely Cause / Fix |
 |---------|-------------------|
 | `psycopg2.OperationalError: could not connect to server` | `DATABASE_URL` is wrong, or the web service region doesn't match the Postgres region. Use the **Internal** URL. |
-| `flask.cli.NoAppException` during pre-deploy | Ensure `app.py` exports `create_app` (it does in the current repo). Run `python -c "from app import create_app"` locally to verify. |
-| 500 on first request after deploy | Tables weren't created. Check the pre-deploy log for "Tables OK". Re-run the pre-deploy command manually via Shell. |
+| `flask.cli.NoAppException` on Shell tab | Ensure `app.py` exports `create_app` (it does in the current repo). Run `python -c "from app import create_app"` locally to verify. |
+| 500 on first request after deploy | Tables weren't created. `wsgi.py` runs `db.create_all()` on import — check the startup logs for "Inventory App Starting Up...". If missing, verify `wsgi.py` exists and the Start Command points to `gunicorn wsgi:app`. |
 | App loads but CSS/icons missing | You're offline or the jsDelivr CDN is blocked. The Bootstrap CSS/JS/icons load from `cdn.jsdelivr.net`. |
 | Service won't wake up / suspended | You've hit the 750 free instance hours/month limit. Wait until next month or upgrade. |

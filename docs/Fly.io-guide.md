@@ -107,7 +107,7 @@ fly secrets set DATABASE_URL="postgres://<user>:<password>@<host>:5432/<dbname>"
 
 ## 5. Configure the fly.toml for Gunicorn and Database Init
 
-Open the generated `fly.toml` and ensure it contains the correct start command and a release command to create tables. It should look like this:
+Open the generated `fly.toml` and ensure it contains the correct start command. The `wsgi.py` entry point in the repo handles table creation automatically on import, so no release command is required. It should look like this:
 
 ```toml
 app = "church-inventory"
@@ -123,19 +123,24 @@ primary_region = "sjc"
   min_machines_running = 0
 
 [processes]
-  # The Procfile in the repo is also honored; this is explicit.
-  web = "gunicorn 'app:create_app()' --workers 1 --threads 2 --timeout 60 --bind 0.0.0.0:8000"
-
-[deploy]
-  release_command = "python -c \"from app import create_app; from extensions import db; app=create_app(); app.app_context().__enter__(); db.create_all(); print('Tables OK')\""
+  # wsgi.py auto-creates tables on import via db.create_all() (idempotent),
+  # so no separate release_command is needed.
+  web = "gunicorn wsgi:app --workers 1 --threads 2 --timeout 60 --bind 0.0.0.0:8000"
 ```
 
 Key points:
 * `internal_port = 8000` must match the port gunicorn binds to (`--bind 0.0.0.0:8000`).
 * `auto_stop_machines = true` and `auto_start_machines = true` let the machine sleep when idle (saves money on pay-as-you-go). The first request after sleep takes a few seconds to wake.
-* The `release_command` runs before each deploy to create the database tables via `db.create_all()` (idempotent — skips existing tables). This replaces the `init_db.sql` step used in the MySQL guides.
+* The `wsgi.py` entry point creates the database tables on import via `db.create_all()` (idempotent — skips existing tables). This replaces the `init_db.sql` step used in the MySQL guides and avoids the need for a `release_command`.
 
-If you prefer to keep the repo's `Procfile` as the source of truth for the start command, you can omit the `[processes]` block — Fly detects the `web` line in the `Procfile` automatically.
+> **Optional:** If you prefer to keep table creation out of the web process, you can add a `[deploy]` section with a `release_command` (Fly.io supports this on all plans):
+> ```toml
+> [deploy]
+>   release_command = "python -c \"from app import create_app; from extensions import db; app=create_app(); app.app_context().__enter__(); db.create_all(); print('Tables OK')\""
+> ```
+> Either approach works — `wsgi.py` is simpler and uniform across all three PaaS platforms.
+
+If you prefer to keep the repo's `Procfile` as the source of truth for the start command, you can omit the `[processes]` block — Fly detects the `web` line in the `Procfile` automatically (the repo's Procfile uses `gunicorn wsgi:app ...`).
 
 ---
 
@@ -148,8 +153,8 @@ fly deploy
 ```
 
 Watch the output for:
-* `Tables OK` (from the release command) — confirms the database schema was created.
-* `Started machine` and a clean health check — confirms gunicorn started.
+* `Inventory App Starting Up...` (from `wsgi.py` import) — confirms the app loaded and `db.create_all()` ran.
+* `Started machine` and a clean health check — confirms gunicorn started and is listening on port 8000.
 
 If the deploy fails, check the logs:
 
@@ -202,7 +207,7 @@ You'll be prompted for a username and password. After it succeeds, type `exit` t
 * **Ephemeral filesystem:** Do not rely on `app.log` or any file-based storage. All persistent data must live in Postgres. The app's logging is configured to fall back to stdout (`LOG_TO_STDOUT=1`) which Fly's log drain captures.
 * **Wake-up latency:** When `auto_stop_machines` is enabled, the first request after idle takes a few seconds to wake the machine. Subsequent requests are fast.
 * **Custom domain:** Add a custom domain via `fly certs add yourdomain.com` (Fly provides free Let's Encrypt TLS).
-* **Redeploying:** Run `fly deploy` from your project directory. The release command re-runs `db.create_all()` automatically.
+* **Redeploying:** Run `fly deploy` from your project directory. The `wsgi.py` entry point re-runs `db.create_all()` automatically on each process start.
 
 ---
 
@@ -211,7 +216,7 @@ You'll be prompted for a username and password. After it succeeds, type `exit` t
 | Symptom | Likely Cause / Fix |
 |---------|-------------------|
 | `psycopg2.OperationalError: could not connect to server` | `DATABASE_URL` is wrong, or the web app and Postgres cluster aren't in the same Fly organization/region. Use the `.internal` hostname. Run `fly pg attach` to wire them up. |
-| `relation "inventory" does not exist` on first request | Tables weren't created. Check `fly logs` for "Tables OK" from the release command. Re-run `fly deploy` or run the create_tables command via `fly ssh console`. |
+| `relation "inventory" does not exist` on first request | Tables weren't created. `wsgi.py` runs `db.create_all()` on import — check `fly logs` for "Inventory App Starting Up...". Verify the start command uses `gunicorn wsgi:app ...` and `wsgi.py` exists in the repo root. |
 | `flask.cli.NoAppException` | Ensure `app.py` exports `create_app` (it does in the current repo). Run `python -c "from app import create_app"` locally to verify. |
 | App loads but CSS/icons missing | You're offline or the jsDelivr CDN is blocked. Bootstrap CSS/JS/icons load from `cdn.jsdelivr.net`. |
 | `fly deploy` fails on `psycopg2-binary` build | Ensure `requirements.txt` includes `psycopg2-binary==2.9.10`. The current repo includes it. |

@@ -67,17 +67,18 @@ Railway deploys from a Git repository. If your code is not yet on GitHub:
 
 3. Go to the **Settings** tab of the web service:
    * **Build Command:** Railway's Nixpacks builder auto-detects Python and runs `pip install -r requirements.txt` automatically — leave blank unless you want to override.
-   * **Start Command:** `gunicorn "app:create_app()" --workers 1 --threads 2 --timeout 60`
+   * **Start Command:** `gunicorn wsgi:app --workers 1 --threads 2 --timeout 60`
      * The repo's `Procfile` already contains this; Railway can use it but explicitly setting the Start Command is more reliable.
    * Under **Custom Domains**, generate a Railway domain (e.g. `church-inventory.up.railway.app`).
 
-4. To create the database tables, Railway has a **Pre-Deploy Command** field (in Settings). Set it to:
-   ```
-   python -c "from app import create_app; from extensions import db; app=create_app(); app.app_context().__enter__(); db.create_all(); print('Tables OK')"
-   ```
-   This runs before each deploy and creates the tables via `db.create_all()` (idempotent — skips existing tables). This replaces the `init_db.sql` step used in the MySQL guides.
+4. Save the settings. Railway will trigger a new deployment. The `wsgi.py` entry point automatically creates the database tables on import via `db.create_all()` (idempotent — it skips tables that already exist), so no separate pre-deploy command is needed. This replaces the `init_db.sql` step used in the MySQL guides.
 
-5. Save the settings. Railway will trigger a new deployment. Watch the **Deployments** tab for the "Tables OK" log line and the gunicorn startup message.
+> **Note:** Railway does support a **Pre-Deploy Command** field, but it's optional here. The `wsgi.py` approach works uniformly across Render, Railway, and Fly.io without platform-specific pre-deploy configuration. If you prefer to keep table creation out of the web process, you can alternatively set the Pre-Deploy Command to:
+> ```
+> python -c "from app import create_app; from extensions import db; app=create_app(); app.app_context().__enter__(); db.create_all(); print('Tables OK')"
+> ```
+
+Watch the **Deployments** tab for the gunicorn startup message (you should see "Inventory App Starting Up..." in the logs).
 
 ---
 
@@ -123,7 +124,7 @@ Railway provides a web-based terminal for one-off commands.
 | Symptom | Likely Cause / Fix |
 |---------|-------------------|
 | `psycopg2.OperationalError: could not connect to server` | `DATABASE_URL` is wrong or the Postgres service isn't running. Use a **Reference Variable** instead of a hardcoded string. |
-| `relation "inventory" does not exist` on first request | Tables weren't created. Check the Pre-Deploy Command log for "Tables OK". Re-run the command via the Railway terminal. |
+| `relation "inventory" does not exist` on first request | Tables weren't created. `wsgi.py` runs `db.create_all()` on import — check the startup logs. Verify the Start Command is `gunicorn wsgi:app ...` and `wsgi.py` exists in the repo root. |
 | `flask.cli.NoAppException` | Ensure `app.py` exports `create_app` (it does in the current repo). Run `python -c "from app import create_app"` locally to verify. |
 | App loads but CSS/icons missing | You're offline or the jsDelivr CDN is blocked. Bootstrap CSS/JS/icons load from `cdn.jsdelivr.net`. |
 | Service suddenly stopped | You've exhausted the $1 free credit. Upgrade to Hobby or wait until next month. |
