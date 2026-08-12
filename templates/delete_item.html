@@ -53,7 +53,7 @@
                         <p class="mb-0"><strong>Warning:</strong> This action cannot be undone. All related movements and disposal records will also be deleted.</p>
                     </div>
                     
-                    <form method="POST" action="{{ url_for('delete_item', item_id=item.id) }}">
+                    <form method="POST" action="{{ url_for('inventory.delete_item', item_id=item.id) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="form-check mb-4">
                             <input type="checkbox" class="form-check-input" id="confirmation" name="confirmation" required>
@@ -63,7 +63,7 @@
                         </div>
                         
                         <div class="d-flex gap-3 justify-content-end">
-                            <a href="{{ url_for('delete_items') }}" class="btn btn-outline-secondary">
+                            <a href="{{ url_for('inventory.delete_items') }}" class="btn btn-outline-secondary">
                                 Cancel
                             </a>
                             <button type="submit" class="btn btn-danger">

@@ -14,7 +14,7 @@
                 
                 <!-- Light Body -->
                 <div class="card-body p-4 bg-white">
-                    <form method="POST" action="{{ url_for('edit_item', item_id=item.id) }}">
+                    <form method="POST" action="{{ url_for('inventory.edit_item', item_id=item.id) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="mb-4">
                             <label class="form-label text-dark">Item Name*</label>
@@ -144,7 +144,7 @@
                         </fieldset>
 
                         <div class="d-flex gap-3 justify-content-end mt-4">
-                            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                            <a href="{{ url_for('inventory.index') }}" class="btn btn-outline-secondary">
                                 Cancel
                             </a>
                             <button type="submit" class="btn btn-primary">
