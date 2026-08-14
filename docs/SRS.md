@@ -1,10 +1,10 @@
-# Software Requirement Specification: Church Inventory System
+# Software Requirement Specification: Inventory System
 
 ## 1. Introduction
 
 ### 1.1 Purpose
 
-This document provides a detailed specification of the requirements for the Church Inventory System. The system is a web-based Flask application designed to track inventory items, their locations, quantities, and movements. It provides functionality for managing items, users, and locations, tracking disposals, and importing/exporting data via CSV.
+This document provides a detailed specification of the requirements for the Inventory System. The system is a web-based Flask application designed to track inventory items, their locations, quantities, and movements. It provides functionality for managing items, users, and locations, tracking disposals, and importing/exporting data via CSV.
 
 ### 1.2 Scope
 

@@ -1,6 +1,6 @@
 # Deployment Guide for Render (Free Tier)
 
-This guide deploys the Church Inventory System to Render's free tier using a free Render Postgres database. No credit card is required to start.
+This guide deploys the Inventory System to Render's free tier using a free Render Postgres database. No credit card is required to start.
 
 ## Disclaimer
 
@@ -16,18 +16,32 @@ This guide deploys the Church Inventory System to Render's free tier using a fre
 
 ---
 
-## 1. Push Your Code to GitHub
+## 1. Get the Source Code from GitHub
 
-Render deploys from a Git repository. If your code is not yet on GitHub:
+Render deploys from a Git repository that you own. Since the source code already lives in a public repository, you can **fork** it (so Render can deploy from your own copy) and optionally **clone** it locally for inspection or local testing.
 
-1. Create a new repository on GitHub (e.g. `inventory_management_system`).
-2. Push your local code to it:
-   ```bash
-   git remote add origin https://github.com/<your-username>/inventory_management_system.git
-   git branch -M main
-   git push -u origin main
-   ```
-   Ensure the `Procfile`, `requirements.txt`, and the `app.py` app-factory version are all committed.
+### 1a. Fork the repository on GitHub
+
+1. Go to the project's GitHub page: [https://github.com/stephen-cpe/inventory_management_system](https://github.com/stephen-cpe/inventory_management_system)
+2. Click the **Fork** button in the top-right corner.
+3. Choose your GitHub account as the destination. GitHub creates a copy under your account, e.g. `https://github.com/<your-username>/inventory_management_system`.
+
+> **Why fork?** Render connects to a repository under *your* GitHub account. You need your own copy (a fork) so Render has permission to read and deploy it. You cannot point Render directly at `stephen-cpe/inventory_management_system` unless you are a collaborator on that repo.
+
+### 1b. (Optional) Clone your fork locally
+
+If you want to inspect, modify, or run the code locally before deploying:
+
+```bash
+git clone https://github.com/<your-username>/inventory_management_system.git
+cd inventory_management_system
+```
+
+Alternatively, you can download a ZIP archive instead of using Git:
+1. On your fork's GitHub page, click the green **Code** button → **Download ZIP**.
+2. Extract the archive to a folder of your choice.
+
+> The `Procfile`, `requirements.txt`, and the `app.py` app-factory version are all included in the repository — no additional setup is needed before connecting it to Render.
 
 ---
 
